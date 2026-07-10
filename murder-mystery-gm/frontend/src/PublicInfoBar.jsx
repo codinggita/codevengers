@@ -1,5 +1,6 @@
 import React from 'react';
 import { Skull, MapPin, Clock } from 'lucide-react';
+import { useTheme } from './themes/ThemeProvider';
 
 /**
  * Masthead showing shared case facts visible to all players.
@@ -20,6 +21,7 @@ export default function PublicInfoBar({
   totalRounds,
   timeLabel,
 }) {
+  const theme = useTheme();
   const roundLabel =
     round != null
       ? totalRounds != null
@@ -28,11 +30,11 @@ export default function PublicInfoBar({
       : null;
 
   return (
-    <header className="w-full bg-mystery-panel border-b border-mystery-hairline px-4 sm:px-6 py-5 font-case">
+    <header className="theme-program w-full bg-mystery-panel px-4 sm:px-6 py-5 font-case">
       <div className="max-w-6xl mx-auto">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
           <p className="font-typewriter text-xs uppercase tracking-widest text-mystery-textSecondary">
-            Public Record
+            {theme?.labels?.publicRecord || 'Public Record'}
           </p>
           {roundLabel && (
             <p className="font-typewriter text-xs uppercase tracking-widest text-mystery-brass">
@@ -45,9 +47,9 @@ export default function PublicInfoBar({
           {title}
         </h1>
 
-        <hr className="border-mystery-hairline mb-4" />
+        <div className="theme-program-divider mb-4" aria-hidden="true" />
 
-        <dl className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+        <dl className="theme-program-facts grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           <div className="flex items-start gap-2 min-w-0">
             <Skull className="w-5 h-5 text-mystery-red shrink-0 mt-0.5" aria-hidden="true" />
             <div className="min-w-0">

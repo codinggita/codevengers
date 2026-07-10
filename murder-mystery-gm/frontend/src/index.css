@@ -453,3 +453,285 @@ body {
   .home-case-folder { display: none; }
   .home-case-content { animation: none; }
 }
+
+/* Wedding theme — ambient hall lighting and petals */
+.theme-wedding .themed-game-shell {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse 64% 32% at 50% 0%, var(--theme-glow), transparent 74%),
+    #0b0a08;
+}
+
+.theme-wedding .themed-game-shell::before,
+.theme-wedding .themed-game-shell::after {
+  position: absolute;
+  z-index: -1;
+  pointer-events: none;
+  content: "";
+}
+
+.theme-wedding .themed-game-shell::before {
+  inset: 0 0 auto;
+  height: 7rem;
+  opacity: .56;
+  background-image:
+    radial-gradient(circle at 8% 30%, rgba(255, 223, 151, .58) 0 1.5px, transparent 2px),
+    radial-gradient(circle at 21% 55%, rgba(255, 223, 151, .42) 0 1px, transparent 1.7px),
+    radial-gradient(circle at 37% 32%, rgba(255, 223, 151, .58) 0 1.5px, transparent 2px),
+    radial-gradient(circle at 52% 60%, rgba(255, 223, 151, .42) 0 1px, transparent 1.7px),
+    radial-gradient(circle at 68% 31%, rgba(255, 223, 151, .58) 0 1.5px, transparent 2px),
+    radial-gradient(circle at 83% 54%, rgba(255, 223, 151, .42) 0 1px, transparent 1.7px),
+    radial-gradient(circle at 94% 31%, rgba(255, 223, 151, .58) 0 1.5px, transparent 2px);
+  mask-image: linear-gradient(to bottom, black, transparent);
+}
+
+.theme-wedding .themed-game-shell::after {
+  inset: auto 0 0;
+  height: 16rem;
+  opacity: .5;
+  background:
+    radial-gradient(ellipse at 0% 100%, var(--theme-floral), transparent 42%),
+    radial-gradient(ellipse at 100% 100%, var(--theme-floral), transparent 42%);
+}
+
+.theme-ambient {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.theme-petal {
+  position: absolute;
+  top: -1.5rem;
+  width: .65rem;
+  height: .42rem;
+  border-radius: 100% 0 100% 0;
+  background: rgba(225, 166, 175, .34);
+  box-shadow: 0 0 .5rem rgba(255, 219, 199, .12);
+  animation: wedding-petal-fall 18s linear infinite;
+}
+
+.theme-petal:nth-child(1) { left: 8%; animation-delay: -3s; animation-duration: 20s; }
+.theme-petal:nth-child(2) { left: 23%; animation-delay: -12s; animation-duration: 17s; }
+.theme-petal:nth-child(3) { left: 42%; animation-delay: -7s; animation-duration: 22s; }
+.theme-petal:nth-child(4) { left: 61%; animation-delay: -16s; animation-duration: 19s; }
+.theme-petal:nth-child(5) { left: 76%; animation-delay: -9s; animation-duration: 23s; }
+.theme-petal:nth-child(6) { left: 89%; animation-delay: -5s; animation-duration: 18s; }
+.theme-petal:nth-child(7) { left: 96%; animation-delay: -14s; animation-duration: 21s; }
+
+@keyframes wedding-petal-fall {
+  from { transform: translate3d(0, -2rem, 0) rotate(10deg); }
+  to { transform: translate3d(5rem, 105vh, 0) rotate(280deg); }
+}
+
+@media (max-width: 639px) {
+  .theme-petal:nth-child(n + 5) {
+    display: none;
+  }
+
+  .theme-wedding .themed-game-shell::before {
+    height: 5rem;
+    opacity: .38;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .theme-ambient {
+    display: none;
+  }
+}
+
+/* Wedding theme — reception place cards */
+.theme-wedding .theme-player-grid {
+  position: relative;
+  z-index: 1;
+  border-bottom: 1px solid rgba(212, 162, 76, .22);
+  background: linear-gradient(180deg, rgba(30, 25, 20, .94), rgba(11, 10, 8, .9));
+}
+
+.theme-wedding .theme-place-card {
+  min-width: 9.5rem;
+  border: 1px solid rgba(212, 162, 76, .55);
+  border-radius: 2px;
+  background:
+    linear-gradient(135deg, rgba(255, 244, 220, .06), transparent 45%),
+    rgba(30, 25, 20, .94);
+  box-shadow: inset 0 0 0 3px rgba(212, 162, 76, .07);
+}
+
+.theme-wedding .theme-place-card::before {
+  position: absolute;
+  inset: 3px;
+  border: 1px solid rgba(212, 162, 76, .16);
+  content: "";
+  pointer-events: none;
+}
+
+.theme-wedding .theme-place-card-icon {
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  place-items: center;
+  border: 1px solid rgba(212, 162, 76, .55);
+  border-radius: 50%;
+  background: rgba(212, 162, 76, .08);
+  color: var(--theme-accent);
+}
+
+.theme-wedding .theme-place-card-icon svg {
+  width: 1rem;
+  height: 1rem;
+  stroke-width: 1.5;
+}
+
+.theme-wedding .theme-gm-card {
+  border-color: rgba(201, 140, 148, .65);
+}
+
+.theme-wedding .theme-gm-card .theme-place-card-icon {
+  border-color: rgba(201, 140, 148, .7);
+  color: var(--theme-accent-secondary);
+}
+
+.theme-wedding .theme-place-card.is-active {
+  border-color: var(--theme-accent);
+  box-shadow: 0 0 0 1px rgba(212, 162, 76, .18), 0 0 .9rem var(--theme-glow);
+}
+
+.theme-wedding .theme-place-card.is-speaking {
+  border-color: var(--theme-accent-secondary);
+  box-shadow: 0 0 0 1px rgba(201, 140, 148, .18), 0 0 1rem rgba(201, 140, 148, .2);
+}
+
+/* Wedding theme — order-of-service masthead */
+.theme-wedding .theme-program {
+  position: relative;
+  z-index: 1;
+  border-top: 1px solid rgba(212, 162, 76, .42);
+  border-bottom: 1px solid rgba(212, 162, 76, .42);
+  background:
+    linear-gradient(90deg, rgba(201, 140, 148, .05), transparent 24%, transparent 76%, rgba(201, 140, 148, .05)),
+    rgba(22, 19, 16, .94);
+  box-shadow: inset 0 3px 0 rgba(212, 162, 76, .09), inset 0 -3px 0 rgba(212, 162, 76, .09);
+}
+
+.theme-wedding .theme-program::before {
+  position: absolute;
+  inset: 5px;
+  border-top: 1px solid rgba(212, 162, 76, .14);
+  border-bottom: 1px solid rgba(212, 162, 76, .14);
+  content: "";
+  pointer-events: none;
+}
+
+.theme-wedding .theme-program > div {
+  position: relative;
+  z-index: 1;
+}
+
+.theme-wedding .theme-program-divider {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: .65rem;
+  color: var(--theme-accent);
+}
+
+.theme-wedding .theme-program-divider::before,
+.theme-wedding .theme-program-divider::after {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(212, 162, 76, .55));
+  content: "";
+}
+
+.theme-wedding .theme-program-divider::after {
+  background: linear-gradient(90deg, rgba(212, 162, 76, .55), transparent);
+}
+
+.theme-wedding .theme-program-divider {
+  font-size: .8rem;
+}
+
+.theme-wedding .theme-program-divider::selection {
+  background: transparent;
+}
+
+.theme-wedding .theme-program-divider {
+  color: transparent;
+}
+
+.theme-wedding .theme-program-divider::before {
+  box-shadow: .35rem 0 0 -0.18rem var(--theme-accent);
+}
+
+.theme-wedding .theme-program-divider::after {
+  box-shadow: -.35rem 0 0 -0.18rem var(--theme-accent);
+}
+
+@media (min-width: 640px) {
+  .theme-wedding .theme-program-facts > div + div {
+    position: relative;
+  }
+
+  .theme-wedding .theme-program-facts > div + div::before {
+    position: absolute;
+    top: .25rem;
+    bottom: .25rem;
+    left: -0.85rem;
+    width: 1px;
+    background: linear-gradient(transparent, rgba(212, 162, 76, .42), transparent);
+    content: "";
+  }
+}
+
+/* Wedding theme — invitation-styled private dossier */
+.theme-wedding .theme-invitation-dossier {
+  position: relative;
+  border-color: rgba(212, 162, 76, .48);
+  background:
+    linear-gradient(90deg, rgba(212, 162, 76, .68), rgba(212, 162, 76, .68)) left 12px top 12px / 2rem 1px no-repeat,
+    linear-gradient(rgba(212, 162, 76, .68), rgba(212, 162, 76, .68)) left 12px top 12px / 1px 2rem no-repeat,
+    linear-gradient(90deg, rgba(212, 162, 76, .68), rgba(212, 162, 76, .68)) right 12px top 12px / 2rem 1px no-repeat,
+    linear-gradient(rgba(212, 162, 76, .68), rgba(212, 162, 76, .68)) right 12px top 12px / 1px 2rem no-repeat,
+    linear-gradient(90deg, rgba(212, 162, 76, .68), rgba(212, 162, 76, .68)) left 12px bottom 12px / 2rem 1px no-repeat,
+    linear-gradient(rgba(212, 162, 76, .68), rgba(212, 162, 76, .68)) left 12px bottom 12px / 1px 2rem no-repeat,
+    linear-gradient(90deg, rgba(212, 162, 76, .68), rgba(212, 162, 76, .68)) right 12px bottom 12px / 2rem 1px no-repeat,
+    linear-gradient(rgba(212, 162, 76, .68), rgba(212, 162, 76, .68)) right 12px bottom 12px / 1px 2rem no-repeat,
+    linear-gradient(135deg, rgba(201, 140, 148, .055), transparent 34%),
+    #1e1a15;
+}
+
+.theme-wedding .theme-invitation-dossier::before {
+  position: absolute;
+  inset: 7px;
+  border: 1px solid rgba(212, 162, 76, .13);
+  content: "";
+  pointer-events: none;
+}
+
+.theme-wedding .theme-invitation-dossier > * {
+  position: relative;
+  z-index: 1;
+}
+
+.theme-wedding .theme-character-card > div:first-child .text-mystery-red {
+  color: var(--theme-accent-secondary);
+}
+
+.theme-wedding .theme-character-card .redaction-hatch {
+  background-color: rgba(201, 140, 148, .09);
+}
+
+/* Wedding theme — gift-table evidence board */
+.theme-wedding .theme-gift-table { border-color: rgba(212, 162, 76, .42); background: linear-gradient(135deg, rgba(201, 140, 148, .06), transparent 35%), #161310; box-shadow: inset 0 0 0 4px rgba(212, 162, 76, .05), 0 1.5rem 3rem rgba(0,0,0,.38); }
+.theme-wedding .theme-gift-table-header { border-bottom: 1px solid rgba(212, 162, 76, .35); }
+.theme-wedding .theme-gift-table-header svg { color: var(--theme-accent-secondary); }
+.theme-wedding .theme-gift-tag { border-color: rgba(212, 162, 76, .52); background: linear-gradient(135deg, rgba(255, 242, 220, .92), rgba(248, 230, 216, .96)), #fffdf0; }
+.theme-wedding .theme-ribbon-tag { position: absolute; top: -10px; left: 50%; width: 2.25rem; height: 1rem; transform: translateX(-50%); background: var(--theme-accent-secondary); box-shadow: 0 .18rem .3rem rgba(0,0,0,.25); }
+.theme-wedding .theme-ribbon-tag::before, .theme-wedding .theme-ribbon-tag::after { position: absolute; top: 0; width: .6rem; height: 100%; background: #a55d6a; content: ""; }
+.theme-wedding .theme-ribbon-tag::before { left: -.35rem; clip-path: polygon(100% 0, 100% 100%, 0 75%, 30% 50%, 0 25%); }
+.theme-wedding .theme-ribbon-tag::after { right: -.35rem; clip-path: polygon(0 0, 0 100%, 100% 75%, 70% 50%, 100% 25%); }

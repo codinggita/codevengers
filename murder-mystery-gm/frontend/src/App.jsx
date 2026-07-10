@@ -10,10 +10,15 @@ import AccuseTab from './AccuseTab';
 import RevealScreen from './RevealScreen';
 import PlayerGrid from './PlayerGrid';
 import AdminTest from './AdminTest';
+import weddingTheme from './themes/wedding';
+import { ThemeAmbient, ThemeProvider } from './themes/ThemeProvider';
 
 const MIN_PLAYERS = 3;
 
 export default function App() {
+  // Theme selection can eventually come from the generated mystery's setting field.
+  // It is intentionally fixed here so no game-state or generator schema changes are needed.
+  const activeTheme = weddingTheme;
   const [view, setView] = useState('home'); // home, lobby, loading, game, reveal
   const [playerName, setPlayerName] = useState('');
   const [roomCodeInput, setRoomCodeInput] = useState('');
@@ -236,8 +241,10 @@ export default function App() {
     const adapted = adaptCharacter(myCharacter);
     
     return (
-      <div className="min-h-screen bg-mystery-bg flex flex-col pb-20">
-        <PublicInfoBar
+      <ThemeProvider theme={activeTheme}>
+        <div className="themed-game-shell min-h-screen bg-mystery-bg flex flex-col pb-20">
+          <ThemeAmbient />
+          <PublicInfoBar
           title={caseInfo?.title}
           victim={caseInfo?.victim}
           location={caseInfo?.location}
@@ -299,7 +306,8 @@ export default function App() {
             Accuse
           </button>
         </div>
-    </div>
+        </div>
+      </ThemeProvider>
     );
   }
 
