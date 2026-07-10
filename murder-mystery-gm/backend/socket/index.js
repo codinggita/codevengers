@@ -1,5 +1,6 @@
 import { customAlphabet } from 'nanoid';
 import { generateMystery } from '../ai/mysteryGenerator.js';
+import { processInvestigation, generateEpilogue } from '../ai/gameMaster.js';
 
 function shuffleArray(array) {
   const arr = [...array];
@@ -204,6 +205,145 @@ export function registerSocketHandlers(io) {
           message: 'Failed to generate mystery. Please try again.',
         });
       }
+    });
+
+    socket.on('investigateAction', async ({ actionText }, callback) => {
+      const roomCode = socketToRoom.get(socket.id);
+      if (!roomCode) return callback?.({ ok: false, error: 'Not in a room' });
+
+      const room = rooms.get(roomCode);
+      if (!room || room.phase !== 'game') return callback?.({ ok: false, error: 'Game not active' });
+
+      const player = room.players.find(p => p.id === socket.id);
+      if (!player || !player.character) return callback?.({ ok: false, error: 'Player character not found' });
+
+      try {
+        const result = await processInvestigation(player, actionText, room.mystery, room.discoveredClues.map(c => c.id));
+        
+        if (result.error) {
+          return callback?.({ ok: false, error: result.error });
+        }
+
+        let newClue = null;
+        if (result.matched_clue_id) {
+          const clue = room.mystery.clues?.find(c => c.id === result.matched_clue_id);
+          if (clue && !room.discoveredClues.some(c => c.id === clue.id)) {
+            newClue = {
+              id: clue.id,
+              description: clue.description,
+              discoveredBy: player.name,
+              discoveredAt: Date.now()
+            };
+            room.discoveredClues.push(newClue);
+            io.to(roomCode).emit('clueDiscovered', newClue);
+          }
+        }
+
+        socket.emit('investigateResponse', {
+          actionText,
+          flavorText: result.flavor_text,
+          clue: newClue
+        });
+        
+        callback?.({ ok: true });
+      } catch (err) {
+        console.error("Investigate Action Error:", err);
+        callback?.({ ok: false, error: "An error occurred during investigation." });
+      }
+    });
+
+    socket.on('submitVote', async ({ accusedId, motive }, callback) => {
+      const roomCode = socketToRoom.get(socket.id);
+      if (!roomCode) return callback?.({ ok: false, error: 'Not in a room' });
+
+      const room = rooms.get(roomCode);
+      if (!room || room.phase !== 'game') return callback?.({ ok: false, error: 'Game not active' });
+      
+      const player = room.players.find(p => p.id === socket.id);
+      if (!player) return callback?.({ ok: false, error: 'Player not found' });
+
+      room.votes[socket.id] = { accusedId, motive, voterName: player.name };
+      
+      io.to(roomCode).emit('voteCast', { voterName: player.name });
+      callback?.({ ok: true });
+
+      // Check if all players have voted
+      if (Object.keys(room.votes).length === room.players.length) {
+        room.phase = 'reveal';
+        // We don't just emit 'revealPhase' anymore. We compute results and generate epilogue.
+        
+        try {
+          const murderer = room.mystery.players.find(p => p.is_murderer);
+          const murdererId = room.players.find(p => p.character?.character_name === murderer.character_name)?.id;
+          
+          let maxVotes = 0;
+          const voteCounts = {};
+          const voteBreakdown = [];
+
+          // Tally votes and build breakdown
+          for (const [voterId, vote] of Object.entries(room.votes)) {
+            voteCounts[vote.accusedId] = (voteCounts[vote.accusedId] || 0) + 1;
+            if (voteCounts[vote.accusedId] > maxVotes) {
+              maxVotes = voteCounts[vote.accusedId];
+            }
+            
+            const accusedPlayer = room.players.find(p => p.id === vote.accusedId);
+            voteBreakdown.push({
+              voterName: vote.voterName,
+              accusedName: accusedPlayer?.character?.character_name || accusedPlayer?.name || 'Unknown',
+              motive: vote.motive
+            });
+          }
+
+          // Check if murderer got the STRICT majority. If there's a tie for max votes, murderer escapes.
+          const topVotedIds = Object.keys(voteCounts).filter(id => voteCounts[id] === maxVotes);
+          const success = topVotedIds.length === 1 && topVotedIds[0] === murdererId;
+
+          // Call the Game Master for the epilogue
+          const epilogueText = await generateEpilogue(room.mystery, murderer, voteBreakdown, success);
+
+          io.to(roomCode).emit('finalReveal', {
+            trueMurdererId: murdererId,
+            trueMurdererName: murderer.character_name,
+            voteBreakdown,
+            epilogueText,
+            success
+          });
+        } catch (err) {
+          console.error("Reveal Error:", err);
+          io.to(roomCode).emit('gameError', { message: 'Failed to generate reveal.' });
+        }
+      }
+    });
+
+    socket.on('returnToLobby', (callback) => {
+      const roomCode = socketToRoom.get(socket.id);
+      if (!roomCode) return callback?.({ ok: false, error: 'Not in a room' });
+
+      const room = rooms.get(roomCode);
+      if (!room) return callback?.({ ok: false, error: 'Room not found' });
+      
+      // Only host can reset
+      if (room.hostId !== socket.id) return callback?.({ ok: false, error: 'Only the host can return to lobby' });
+
+      // STRICT STATE RESET FOR "PLAY AGAIN"
+      room.phase = 'lobby';
+      room.mystery = null;
+      room.publicInfo = null;
+      room.votes = {};
+      room.discoveredClues = [];
+      
+      for (const player of room.players) {
+        player.character = undefined;
+      }
+
+      io.to(roomCode).emit('playerListUpdate', {
+        players: room.players.filter((p) => p.id),
+        hostId: room.hostId,
+      });
+      io.to(roomCode).emit('gamePhase', { phase: 'lobby' });
+      
+      callback?.({ ok: true });
     });
 
     socket.on('disconnect', () => {

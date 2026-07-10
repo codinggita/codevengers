@@ -120,6 +120,33 @@ const KHOON_KI_BARAAT_EXAMPLE = `{
       "alibi_claimed": "Attending to sangeet duties and household staff throughout the evening; no fixed location during the blackout.",
       "true_whereabouts": "Moving between the kitchen, courtyard, and staff quarters all evening; genuinely no verifiable alibi during the 10:50–11:00 PM blackout."
     }
+  ],
+  "clues": [
+    {
+      "id": "clue_01",
+      "description": "A torn piece of a train ticket to Mumbai found near the stables.",
+      "trigger_keywords": ["search stables", "look around stables", "inspect ground", "train ticket"]
+    },
+    {
+      "id": "clue_02",
+      "description": "A ledger in the daftar showing a missing large sum of money, with Raghubir's angry notes in the margin.",
+      "trigger_keywords": ["search daftar", "inspect desk", "look at papers", "check ledger"]
+    },
+    {
+      "id": "clue_03",
+      "description": "A muddy footprint outside the daftar window that matches a woman's shoe.",
+      "trigger_keywords": ["search window", "inspect outside", "look for footprints", "check garden path"]
+    },
+    {
+      "id": "clue_04",
+      "description": "An empty syringe found tossed in the courtyard bushes.",
+      "trigger_keywords": ["search courtyard", "inspect bushes", "look for murder weapon", "check trash"]
+    },
+    {
+      "id": "clue_05",
+      "description": "An old letter hidden in a book in Kavita's room, referencing a 'favor' she did 20 years ago.",
+      "trigger_keywords": ["search kavita's room", "inspect books", "look for letters", "search bedrooms"]
+    }
   ]
 }`;
 
@@ -138,6 +165,7 @@ CRITICAL RULES:
 4. Every character MUST have at least one relationship to another named character in the "players" array.
 5. The "character" field in any relationship MUST exactly match the "character_name" of someone else in the generated cast. Do not invent NPC names for relationships.
 6. The difference between "alibi_claimed" and "true_whereabouts" is vital, especially for the murderer.
+7. You MUST generate between 5 and 8 clues in the "clues" array. Each clue needs an "id", "description", and an array of 3-5 "trigger_keywords".
 
 RULES FOR EXCELLENCE:
 - The story must be fair and solvable.
@@ -145,6 +173,8 @@ RULES FOR EXCELLENCE:
 - Clues should gradually point toward the truth.
 - Avoid contradictions.
 - Make it atmospheric and engaging.
+
+IMPORTANT: The example above has 5 players, but you MUST generate exactly ${playerCount} players. Create a completely ORIGINAL mystery — do NOT copy the example story or characters. Every relationship "character" field must reference a character_name that exists in YOUR generated players array.
 `;
 
   if (isRetry) {
@@ -154,7 +184,7 @@ RULES FOR EXCELLENCE:
   return prompt;
 }
 
-function validateMystery(mystery, expectedPlayerCount) {
+function validateAndRepairMystery(mystery, expectedPlayerCount) {
   if (!mystery.players || !Array.isArray(mystery.players)) {
     throw new Error("Missing or invalid 'players' array.");
   }
@@ -169,17 +199,27 @@ function validateMystery(mystery, expectedPlayerCount) {
   }
 
   const characterNames = new Set(mystery.players.map(p => p.character_name));
+  const victimName = mystery.victim?.name;
 
   for (const player of mystery.players) {
     if (!player.relationships || player.relationships.length === 0) {
       throw new Error(`Character ${player.character_name} has no relationships.`);
     }
 
-    for (const rel of player.relationships) {
-      if (!characterNames.has(rel.character) && rel.character !== mystery.victim?.name) {
-        throw new Error(`Character ${player.character_name} has a relationship with '${rel.character}', who is not in the cast or the victim.`);
+    // Auto-repair: filter out relationships referencing characters not in the cast
+    const validRels = player.relationships.filter(rel => {
+      const isValid = characterNames.has(rel.character) || rel.character === victimName;
+      if (!isValid) {
+        console.warn(`[AI] Auto-repair: Removed invalid relationship "${rel.character}" from ${player.character_name}`);
       }
+      return isValid;
+    });
+
+    if (validRels.length === 0) {
+      throw new Error(`Character ${player.character_name} has no valid relationships after cleanup.`);
     }
+
+    player.relationships = validRels;
   }
 }
 
@@ -187,10 +227,10 @@ export async function generateMystery(playerCount) {
   let prompt = buildPrompt(playerCount);
   let rawOutput = "";
   
-  // Try up to 2 times (1 initial + 1 retry)
-  for (let attempt = 1; attempt <= 2; attempt++) {
+  // Try up to 3 times (1 initial + 2 retries)
+  for (let attempt = 1; attempt <= 3; attempt++) {
     try {
-      console.log(`[AI] Generating mystery for ${playerCount} players (Attempt ${attempt})...`);
+      console.log(`[AI] Generating mystery for ${playerCount} players (Attempt ${attempt}/3)...`);
       rawOutput = await generateCompletion(prompt, { json: true });
       
       let mystery;
@@ -200,20 +240,21 @@ export async function generateMystery(playerCount) {
         throw new Error(`JSON Parsing Failed: ${parseError.message}`);
       }
 
-      validateMystery(mystery, playerCount);
+      validateAndRepairMystery(mystery, playerCount);
       
       console.log(`[AI] Generation successful on attempt ${attempt}!`);
       return mystery;
 
     } catch (error) {
-      console.error(`[AI] Attempt ${attempt} failed: ${error.message}`);
+      console.error(`[AI] Attempt ${attempt}/3 failed: ${error.message}`);
       
-      if (attempt === 1) {
-        console.error("[AI] Raw output from failed attempt:", rawOutput);
+      if (attempt < 3) {
+        console.error("[AI] Raw output from failed attempt:", rawOutput.slice(0, 500));
         prompt = buildPrompt(playerCount, true, error.message);
       } else {
-        throw new Error(`Failed to generate valid mystery after 2 attempts. Last error: ${error.message}`);
+        throw new Error(`Failed to generate valid mystery after 3 attempts. Last error: ${error.message}`);
       }
     }
   }
 }
+
