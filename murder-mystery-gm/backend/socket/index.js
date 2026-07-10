@@ -85,6 +85,9 @@ export function registerSocketHandlers(io) {
       try {
         const mystery = await generateMystery(room.players.length);
         room.mystery = mystery;
+        room.discoveredClues = [];
+        room.accusations = [];
+        room.votes = {};
         
         // Randomly shuffle the generated characters so it's not based on join order
         const shuffledCharacters = shuffleArray(mystery.players);
@@ -111,6 +114,7 @@ export function registerSocketHandlers(io) {
           io.to(player.id).emit('characterAssigned', scrubbedChar);
         }
         
+        console.log("✅ Mystery generated successfully!");
         room.phase = 'investigation';
         io.to(roomCode).emit('gameStarted', { phase: 'investigation' });
 
