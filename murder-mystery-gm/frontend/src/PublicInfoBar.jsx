@@ -1,66 +1,86 @@
 import React from 'react';
 import { Skull, MapPin, Clock } from 'lucide-react';
 
-export default function PublicInfoBar({ 
-  title, 
-  victim, 
-  location, 
-  round, 
-  totalRounds, 
-  timeLabel 
+/**
+ * Masthead showing shared case facts visible to all players.
+ *
+ * @param {Object} props
+ * @param {string} props.title
+ * @param {string} props.victim
+ * @param {string} props.location
+ * @param {number} [props.round]
+ * @param {number} [props.totalRounds]
+ * @param {string} [props.timeLabel] - Optional in-fiction time
+ */
+export default function PublicInfoBar({
+  title,
+  victim,
+  location,
+  round,
+  totalRounds,
+  timeLabel,
 }) {
+  const roundLabel =
+    round != null
+      ? totalRounds != null
+        ? `${round} / ${totalRounds}`
+        : String(round)
+      : null;
+
   return (
-    <div className="bg-mystery-panel border-b-2 border-mystery-red/80 shadow-lg px-6 py-4 flex flex-col md:flex-row justify-between items-start md:items-center relative z-20 font-case">
-      
-      {/* Red Pin Decorative Motif */}
-      <div className="absolute top-0 right-1/4 w-3 h-3 rounded-full bg-mystery-red border border-mystery-brass shadow-md z-0 hidden md:block shadow-black/50 transform -translate-y-1/2"></div>
-      <div className="absolute top-0 right-1/4 w-0.5 h-full bg-mystery-red/60 -rotate-6 z-0 hidden md:block origin-top"></div>
-
-      <div className="relative z-10 w-full mb-4 md:mb-0">
-        <h1 className="text-3xl font-typewriter tracking-widest uppercase text-mystery-brass mb-3 line-clamp-1">
-          {title || "Active Case File"}
-        </h1>
-        
-        <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-8">
-          <div className="flex items-start space-x-2">
-            <Skull className="w-5 h-5 text-mystery-red shrink-0 mt-0.5" />
-            <div>
-              <span className="text-xs uppercase font-typewriter text-mystery-textSecondary block">Victim</span>
-              <span className="text-mystery-text font-semibold">{victim}</span>
-            </div>
-          </div>
-          
-          <div className="flex items-start space-x-2">
-            <MapPin className="w-5 h-5 text-mystery-textSecondary shrink-0 mt-0.5" />
-            <div>
-              <span className="text-xs uppercase font-typewriter text-mystery-textSecondary block">Location</span>
-              <span className="text-mystery-text font-semibold line-clamp-1">{location}</span>
-            </div>
-          </div>
+    <header className="w-full bg-mystery-panel border-b border-mystery-hairline px-4 sm:px-6 py-5 font-case">
+      <div className="max-w-6xl mx-auto">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
+          <p className="font-typewriter text-xs uppercase tracking-widest text-mystery-textSecondary">
+            Public Record
+          </p>
+          {roundLabel && (
+            <p className="font-typewriter text-xs uppercase tracking-widest text-mystery-brass">
+              Round {roundLabel}
+            </p>
+          )}
         </div>
-      </div>
 
-      <div className="relative z-10 flex space-x-6 border-t md:border-t-0 md:border-l border-[#3a332a] pt-4 md:pt-0 md:pl-6 w-full md:w-auto shrink-0 justify-between md:justify-end">
-        {round && (
-          <div className="text-center md:text-right">
-            <span className="text-xs uppercase font-typewriter text-mystery-textSecondary block mb-1">Phase</span>
-            <span className="text-mystery-brass font-bold text-lg">{round}{totalRounds ? ` / ${totalRounds}` : ''}</span>
-          </div>
-        )}
-        
-        {timeLabel && (
-          <div className="text-center md:text-right flex flex-col items-center md:items-end">
-            <span className="text-xs uppercase font-typewriter text-mystery-textSecondary block mb-1 flex items-center space-x-1">
-              <Clock className="w-3 h-3" />
-              <span>Time</span>
-            </span>
-            <span className="text-mystery-red font-bold text-lg animate-pulse motion-reduce:animate-none">
-              {timeLabel}
-            </span>
-          </div>
-        )}
-      </div>
+        <h1 className="text-2xl sm:text-3xl md:text-4xl font-case font-semibold text-mystery-text mb-4 leading-tight">
+          {title}
+        </h1>
 
-    </div>
+        <hr className="border-mystery-hairline mb-4" />
+
+        <dl className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+          <div className="flex items-start gap-2 min-w-0">
+            <Skull className="w-5 h-5 text-mystery-red shrink-0 mt-0.5" aria-hidden="true" />
+            <div className="min-w-0">
+              <dt className="font-typewriter text-xs uppercase tracking-wider text-mystery-textSecondary">
+                Victim
+              </dt>
+              <dd className="text-mystery-text font-medium truncate">{victim}</dd>
+            </div>
+          </div>
+
+          <div className="flex items-start gap-2 min-w-0">
+            <MapPin className="w-5 h-5 text-mystery-textSecondary shrink-0 mt-0.5" aria-hidden="true" />
+            <div className="min-w-0">
+              <dt className="font-typewriter text-xs uppercase tracking-wider text-mystery-textSecondary">
+                Location
+              </dt>
+              <dd className="text-mystery-text font-medium truncate">{location}</dd>
+            </div>
+          </div>
+
+          {timeLabel && (
+            <div className="flex items-start gap-2 min-w-0">
+              <Clock className="w-5 h-5 text-mystery-textSecondary shrink-0 mt-0.5" aria-hidden="true" />
+              <div className="min-w-0">
+                <dt className="font-typewriter text-xs uppercase tracking-wider text-mystery-textSecondary">
+                  Time
+                </dt>
+                <dd className="text-mystery-brass font-medium truncate">{timeLabel}</dd>
+              </div>
+            </div>
+          )}
+        </dl>
+      </div>
+    </header>
   );
 }

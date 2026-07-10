@@ -9,8 +9,32 @@ body {
   font-family: 'Lora', serif;
 }
 
+/* Brass diagonal hatch for redacted secrets */
+.redaction-hatch {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    transparent,
+    transparent 4px,
+    rgba(212, 162, 76, 0.12) 4px,
+    rgba(212, 162, 76, 0.12) 5px
+  );
+  background-color: rgba(212, 162, 76, 0.08);
+}
+
+/* Desk-lamp vignette for loading screen */
+.desk-lamp-vignette {
+  background: radial-gradient(
+    ellipse 55% 45% at 50% 42%,
+    rgba(212, 162, 76, 0.14) 0%,
+    rgba(212, 162, 76, 0.04) 35%,
+    transparent 70%
+  );
+}
+
 @media (prefers-reduced-motion: reduce) {
-  * {
+  *,
+  *::before,
+  *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
