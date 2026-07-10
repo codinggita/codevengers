@@ -138,6 +138,13 @@ CRITICAL RULES:
 4. Every character MUST have at least one relationship to another named character in the "players" array.
 5. The "character" field in any relationship MUST exactly match the "character_name" of someone else in the generated cast. Do not invent NPC names for relationships.
 6. The difference between "alibi_claimed" and "true_whereabouts" is vital, especially for the murderer.
+
+RULES FOR EXCELLENCE:
+- The story must be fair and solvable.
+- All player motives and secrets must be unique.
+- Clues should gradually point toward the truth.
+- Avoid contradictions.
+- Make it atmospheric and engaging.
 `;
 
   if (isRetry) {

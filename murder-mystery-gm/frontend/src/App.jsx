@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { socket } from './socket';
 import CharacterCard from './CharacterCard';
+import AdminTest from './AdminTest';
 
 export default function App() {
   const [view, setView] = useState('home'); // home, lobby, generating, investigation
@@ -45,6 +46,10 @@ export default function App() {
       socket.off('gameError', onGameError);
     };
   }, []);
+
+  if (import.meta.env.DEV && window.location.hash === '#admin') {
+    return <AdminTest />;
+  }
 
   const handleCreate = (e) => {
     e.preventDefault();
