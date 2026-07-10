@@ -1,14 +1,45 @@
 import React, { useState, useEffect } from 'react';
 import { Skull, AlertTriangle, CheckCircle, RefreshCcw } from 'lucide-react';
+import { speakGameMaster } from './utils/speech';
 
-export default function RevealScreen({ revealData, isHost, onReturnToLobby }) {
+export default function RevealScreen({ revealData, isHost, onReturnToLobby, setGmSpeaking }) {
   const { trueMurdererName, voteBreakdown, epilogueText, success } = revealData;
   const [typedEpilogue, setTypedEpilogue] = useState('');
+  const [revealStage, setRevealStage] = useState('verdict'); // 'verdict' | 'truth' | 'epilogue'
+  
+  // Sequence the reveals
+  useEffect(() => {
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReducedMotion) {
+      setRevealStage('epilogue');
+      return;
+    }
+    
+    const truthTimer = setTimeout(() => setRevealStage('truth'), 1500);
+    const epilogueTimer = setTimeout(() => {
+      setRevealStage('epilogue');
+      speakGameMaster(
+        revealData.epilogueText,
+        () => setGmSpeaking?.(true),
+        () => setGmSpeaking?.(false)
+      );
+    }, 2500);
+    
+    return () => { clearTimeout(truthTimer); clearTimeout(epilogueTimer); };
+  }, []);
   
   // Typewriter effect for epilogue
   useEffect(() => {
+    if (revealStage !== 'epilogue') return;
+    
     setTypedEpilogue('');
     let index = 0;
+
+    if ('speechSynthesis' in window) {
+      setTypedEpilogue(epilogueText);
+      return;
+    }
+
     const interval = setInterval(() => {
       index += 1;
       setTypedEpilogue(epilogueText.substring(0, index));
@@ -18,7 +49,7 @@ export default function RevealScreen({ revealData, isHost, onReturnToLobby }) {
     }, 20); // 20ms per character
 
     return () => clearInterval(interval);
-  }, [epilogueText]);
+  }, [epilogueText, revealStage]);
 
   return (
     <div className="min-h-screen bg-mystery-bg text-mystery-text font-case p-6 pb-24 overflow-y-auto custom-scrollbar">
@@ -58,7 +89,9 @@ export default function RevealScreen({ revealData, isHost, onReturnToLobby }) {
         </div>
 
         {/* Section 2: The Truth */}
-        <div className={`border-2 rounded shadow-2xl p-8 text-center transition-all duration-1000 ${
+        <div className={`border-2 rounded shadow-2xl p-8 text-center transition-all duration-1000 transform ${
+          revealStage === 'verdict' ? 'opacity-0 translate-y-8 pointer-events-none' : 'opacity-100 translate-y-0'
+        } ${
           success ? 'bg-green-900/20 border-green-700/50' : 'bg-red-950/30 border-mystery-red/50'
         }`}>
           {success ? (
@@ -81,7 +114,9 @@ export default function RevealScreen({ revealData, isHost, onReturnToLobby }) {
         </div>
 
         {/* Section 3: The Epilogue */}
-        <div className="bg-black/40 border border-[#2a251e] rounded shadow-2xl p-8 min-h-[200px]">
+        <div className={`bg-black/40 border border-[#2a251e] rounded shadow-2xl p-8 min-h-[200px] transition-all duration-1000 transform ${
+          revealStage !== 'epilogue' ? 'opacity-0 translate-y-8 pointer-events-none' : 'opacity-100 translate-y-0'
+        }`}>
           <h2 className="text-sm font-typewriter text-mystery-textSecondary uppercase tracking-widest mb-4">
             Game Master's Epilogue
           </h2>
@@ -94,7 +129,9 @@ export default function RevealScreen({ revealData, isHost, onReturnToLobby }) {
         </div>
 
         {/* Play Again Action */}
-        <div className="flex justify-center pt-8">
+        <div className={`flex justify-center pt-8 transition-opacity duration-1000 ${
+          revealStage !== 'epilogue' ? 'opacity-0 pointer-events-none' : 'opacity-100'
+        }`}>
           {isHost ? (
             <button
               onClick={onReturnToLobby}

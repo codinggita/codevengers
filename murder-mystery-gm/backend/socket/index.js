@@ -252,6 +252,22 @@ export function registerSocketHandlers(io) {
       }
     });
 
+    socket.on('playerTyping', ({ isTyping }) => {
+      const roomCode = socketToRoom.get(socket.id);
+      if (!roomCode) return;
+      const room = rooms.get(roomCode);
+      if (!room) return;
+      const player = room.players.find(p => p.id === socket.id);
+      if (!player) return;
+      
+      // broadcast to everyone else in the room
+      socket.to(roomCode).emit('playerTypingUpdate', {
+        playerId: player.id,
+        playerName: player.character?.character_name || player.name,
+        isTyping
+      });
+    });
+
     socket.on('submitVote', async ({ accusedId, motive }, callback) => {
       const roomCode = socketToRoom.get(socket.id);
       if (!roomCode) return callback?.({ ok: false, error: 'Not in a room' });

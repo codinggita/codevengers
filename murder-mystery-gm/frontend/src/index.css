@@ -31,6 +31,46 @@ body {
   );
 }
 
+/* Pin drop animation for evidence board */
+@keyframes pin-drop {
+  0% {
+    opacity: 0;
+    transform: translateY(-20px) scale(1.05) rotate(-2deg);
+  }
+  70% {
+    opacity: 1;
+    transform: translateY(2px) scale(0.98) rotate(1deg);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1) rotate(0deg);
+  }
+}
+
+.animate-pin-drop {
+  animation: pin-drop 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+/* Wax seal stamp animation */
+@keyframes stamp {
+  0% {
+    opacity: 0;
+    transform: scale(2) rotate(-15deg);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(0.9) rotate(5deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+.animate-stamp {
+  animation: stamp 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

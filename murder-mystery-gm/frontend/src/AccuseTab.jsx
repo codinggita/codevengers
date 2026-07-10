@@ -1,17 +1,18 @@
 import { useState } from 'react';
-import { Gavel, AlertCircle, Clock } from 'lucide-react';
+import { Gavel, AlertCircle, Clock, Stamp } from 'lucide-react';
 
 export default function AccuseTab({ players, currentUserId, hasVoted, voteCount, totalPlayers, onVote }) {
   const [selectedSuspect, setSelectedSuspect] = useState('');
   const [motive, setMotive] = useState('');
   const [error, setError] = useState('');
+  const [isStamping, setIsStamping] = useState(false);
 
   // Exclude current player from suspects list
   const suspects = players.filter(p => p.id !== currentUserId);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (hasVoted) return;
+    if (hasVoted || isStamping) return;
     
     if (!selectedSuspect) {
       setError("You must select a suspect.");
@@ -22,7 +23,16 @@ export default function AccuseTab({ players, currentUserId, hasVoted, voteCount,
       return;
     }
 
-    onVote(selectedSuspect, motive);
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReducedMotion) {
+      onVote(selectedSuspect, motive);
+      return;
+    }
+
+    setIsStamping(true);
+    setTimeout(() => {
+      onVote(selectedSuspect, motive);
+    }, 600);
   };
 
   if (hasVoted) {
@@ -61,9 +71,18 @@ export default function AccuseTab({ players, currentUserId, hasVoted, voteCount,
         </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="w-full space-y-8 bg-[#161310] p-8 border border-[#2a251e] rounded shadow-2xl relative">
+      <form onSubmit={handleSubmit} className="w-full space-y-8 bg-[#161310] p-8 border border-[#2a251e] rounded shadow-2xl relative overflow-hidden">
+        {/* Stamp Overlay */}
+        {isStamping && (
+          <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm rounded">
+            <div className="text-mystery-red animate-stamp drop-shadow-2xl">
+              <Stamp className="w-40 h-40" strokeWidth={1.5} />
+            </div>
+          </div>
+        )}
+
         {/* Red pin detail */}
-        <div className="absolute -top-3 -right-3 w-6 h-6 rounded-full bg-mystery-red border-2 border-mystery-brass shadow-md"></div>
+        <div className="absolute -top-3 -right-3 w-6 h-6 rounded-full bg-mystery-red border-2 border-mystery-brass shadow-md z-10"></div>
         
         {error && (
           <div className="p-3 bg-mystery-red/10 border border-mystery-red/30 rounded flex items-start space-x-2 text-mystery-red text-sm font-typewriter">

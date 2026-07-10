@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { socket } from './socket';
-import { Skull, UserPlus, LogIn, AlertCircle } from 'lucide-react';
+import { Skull, UserPlus, LogIn, AlertCircle, Users, FileSearch, Fingerprint } from 'lucide-react';
 import LobbyScreen from './LobbyScreen';
 import LoadingMystery from './LoadingMystery';
 import PublicInfoBar from './PublicInfoBar';
@@ -8,6 +8,7 @@ import CharacterCard from './CharacterCard';
 import InvestigateTab from './InvestigateTab';
 import AccuseTab from './AccuseTab';
 import RevealScreen from './RevealScreen';
+import PlayerGrid from './PlayerGrid';
 import AdminTest from './AdminTest';
 
 const MIN_PLAYERS = 3;
@@ -25,6 +26,9 @@ export default function App() {
   const [myCharacter, setMyCharacter] = useState(null);
   const [caseInfo, setCaseInfo] = useState(null);
   
+  const [typingPlayers, setTypingPlayers] = useState({});
+  const [gmSpeaking, setGmSpeaking] = useState(false);
+
   // Phase 3 State
   const [gameTab, setGameTab] = useState('dossier'); // dossier, investigate, accuse
   const [sharedClues, setSharedClues] = useState([]);
@@ -91,7 +95,23 @@ export default function App() {
       if (view === 'loading') setView('lobby');
     }
 
-    socket.on('playerListUpdate', onPlayerListUpdate);
+    function onPlayerTypingUpdate({ playerId, playerName, isTyping }) {
+      setTypingPlayers(prev => {
+        const next = { ...prev };
+        if (isTyping) {
+          next[playerId] = playerName;
+        } else {
+          delete next[playerId];
+        }
+        return next;
+      });
+    }
+
+    if (view === 'game' || view === 'lobby') {
+      socket.on('playerListUpdate', onPlayerListUpdate);
+      socket.on('playerTypingUpdate', onPlayerTypingUpdate);
+    }
+
     socket.on('gamePhase', onGamePhase);
     socket.on('mysteryReady', onMysteryReady);
     socket.on('yourCharacter', onYourCharacter);
@@ -102,6 +122,7 @@ export default function App() {
 
     return () => {
       socket.off('playerListUpdate', onPlayerListUpdate);
+      socket.off('playerTypingUpdate', onPlayerTypingUpdate);
       socket.off('gamePhase', onGamePhase);
       socket.off('mysteryReady', onMysteryReady);
       socket.off('yourCharacter', onYourCharacter);
@@ -206,6 +227,7 @@ export default function App() {
         revealData={revealData}
         isHost={socket.id === hostId}
         onReturnToLobby={handleReturnToLobby}
+        setGmSpeaking={setGmSpeaking}
       />
     );
   }
@@ -222,6 +244,8 @@ export default function App() {
           round={caseInfo?.round}
           totalRounds={caseInfo?.totalRounds}
         />
+
+        <PlayerGrid players={players} typingPlayers={typingPlayers} gmSpeaking={gmSpeaking} />
         
         <div className="flex-1">
           {gameTab === 'dossier' && (
@@ -236,7 +260,11 @@ export default function App() {
             />
           )}
           {gameTab === 'investigate' && (
-            <InvestigateTab sharedClues={sharedClues} />
+            <InvestigateTab 
+              sharedClues={sharedClues} 
+              setGmSpeaking={setGmSpeaking} 
+              typingPlayers={typingPlayers}
+            />
           )}
           {gameTab === 'accuse' && (
             <AccuseTab 
