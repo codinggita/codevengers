@@ -1,86 +1,130 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { Eye, EyeOff, User, BookOpen, AlertTriangle, Fingerprint, Clock, Users } from 'lucide-react';
 
-export default function CharacterCard({ character }) {
-  if (!character) return null;
+export default function CharacterCard({ 
+  name, 
+  background, 
+  secret, 
+  hiddenInfo,
+  motive, 
+  relationships,
+  alibi,
+  startRevealed = false 
+}) {
+  const [isRevealed, setIsRevealed] = useState(startRevealed);
+
+  const toggleReveal = () => setIsRevealed(!isRevealed);
 
   return (
-    <div className="min-h-screen bg-mystery-bg text-mystery-text p-6 flex justify-center">
-      <div className="max-w-2xl w-full space-y-6">
+    <div className="w-full max-w-4xl mx-auto mt-8 font-case p-4 sm:p-0">
+      <div className="bg-[#eeebd9] text-black shadow-2xl relative overflow-hidden rounded-sm before:content-[''] before:absolute before:inset-0 before:bg-[url('https://www.transparenttextures.com/patterns/cream-paper.png')] before:opacity-50 before:pointer-events-none border border-[#d4cfbd]">
         
-        <div className="bg-red-500/10 border border-red-500/50 p-4 rounded-xl flex items-start gap-3">
-          <span className="text-2xl">⚠️</span>
-          <div>
-            <h3 className="font-bold text-red-400">Keep this secret!</h3>
-            <p className="text-sm text-red-300">Do not share this screen with other players. This is your private character sheet.</p>
-          </div>
+        {/* Top Paper Edge / Tape Motif */}
+        <div className="h-4 w-full bg-[#e3deca] border-b border-[#d4cfbd] shadow-sm mb-6 flex justify-between px-10">
+          <div className="w-8 h-full bg-black/5 mx-4"></div>
+          <div className="w-8 h-full bg-black/5 mx-4"></div>
         </div>
 
-        <div className="text-center space-y-2">
-          <h2 className="text-sm font-semibold tracking-widest text-mystery-muted uppercase">You are playing as</h2>
-          <h1 className="text-4xl font-black text-white">{character.character_name}</h1>
-        </div>
-
-        <div className="bg-mystery-panel rounded-2xl shadow-xl border border-mystery-muted/20 overflow-hidden">
+        <div className="p-6 sm:p-10 lg:p-14 pt-0">
           
-          {/* Public Bio */}
-          <div className="p-6 border-b border-mystery-muted/10">
-            <h3 className="text-sm font-semibold tracking-wider text-mystery-muted uppercase mb-3">What Others Know About You</h3>
-            <p className="text-lg leading-relaxed text-white">{character.public_bio}</p>
-          </div>
-
-          {/* Private Bio */}
-          <div className="p-6 border-b border-mystery-muted/10 bg-black/20">
-            <h3 className="text-sm font-semibold tracking-wider text-mystery-muted uppercase mb-3">What Only You Know</h3>
-            <p className="text-lg leading-relaxed text-gray-300 italic">{character.private_bio}</p>
-          </div>
-
-          <div className="p-6 border-b border-mystery-muted/10">
-            <h3 className="text-sm font-semibold tracking-wider text-mystery-muted uppercase mb-3">Personal Objective</h3>
-            <div className="p-4 bg-mystery-accent/10 border border-mystery-accent/30 rounded-lg text-mystery-accent font-medium">
-              {character.personal_objective}
-            </div>
-          </div>
-
-          {/* Alibi */}
-          <div className="p-6 border-b border-mystery-muted/10">
-            <h3 className="text-sm font-semibold tracking-wider text-mystery-muted uppercase mb-3">Your Story If Asked (Alibi)</h3>
-            <p className="text-gray-300">{character.alibi_claimed}</p>
-          </div>
-
-          {/* Hidden Info & Secrets */}
-          <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="flex flex-col sm:flex-row justify-between items-start border-b-2 border-black/80 pb-6 mb-8 relative">
             <div>
-              <h3 className="text-sm font-semibold tracking-wider text-mystery-muted uppercase mb-3">Hidden Information</h3>
-              <ul className="list-disc list-inside space-y-2 text-gray-300">
-                {character.hidden_information.map((info, idx) => (
-                  <li key={idx}>{info}</li>
-                ))}
-              </ul>
+              <p className="text-xs font-typewriter uppercase tracking-widest text-black/60 mb-2">Subject Identifier</p>
+              <h2 className="text-4xl sm:text-5xl font-typewriter font-bold tracking-tight text-black">{name}</h2>
             </div>
-            
-            <div>
-              <h3 className="text-sm font-semibold tracking-wider text-mystery-muted uppercase mb-3">Your Secrets</h3>
-              <ul className="list-disc list-inside space-y-2 text-red-300">
-                {character.secrets.map((secret, idx) => (
-                  <li key={idx}>{secret}</li>
-                ))}
-              </ul>
+            <div className="mt-4 sm:mt-0 px-4 py-2 border-2 border-mystery-red text-mystery-red font-typewriter font-bold uppercase transform rotate-2 opacity-80 text-xl tracking-widest">
+              CONFIDENTIAL
             </div>
           </div>
 
-          {/* Relationships */}
-          <div className="p-6 border-t border-mystery-muted/10 bg-black/20">
-            <h3 className="text-sm font-semibold tracking-wider text-mystery-muted uppercase mb-4">Relationships</h3>
-            <div className="grid gap-3">
-              {character.relationships.map((rel, idx) => (
-                <div key={idx} className="flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-3 p-3 rounded-lg border border-mystery-muted/10 bg-mystery-bg/50">
-                  <span className="font-bold text-white min-w-[150px]">{rel.character}</span>
-                  <span className="text-gray-400 text-sm">{rel.relation}</span>
+          <div className="space-y-10">
+            {/* Background Section */}
+            <section className="relative">
+              <h3 className="flex items-center space-x-2 text-sm font-typewriter uppercase tracking-widest text-black/70 mb-3 border-b border-black/20 pb-2">
+                <BookOpen className="w-4 h-4" />
+                <span>Background Dossier</span>
+              </h3>
+              <p className="text-lg leading-relaxed whitespace-pre-wrap pl-6 border-l-4 border-mystery-brass/40">
+                {background}
+              </p>
+            </section>
+
+            {/* Relationships & Alibi Section (Visible) */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <section className="relative">
+                <h3 className="flex items-center space-x-2 text-sm font-typewriter uppercase tracking-widest text-black/70 mb-3 border-b border-black/20 pb-2">
+                  <Users className="w-4 h-4" />
+                  <span>Known Associates</span>
+                </h3>
+                <ul className="space-y-3 pl-6 border-l-4 border-mystery-brass/40">
+                  {relationships && relationships.length > 0 ? relationships.map((rel, idx) => (
+                    <li key={idx} className="text-base leading-snug">
+                      <strong className="font-typewriter text-black/80">{rel.character}</strong>: {rel.relation}
+                    </li>
+                  )) : (
+                    <li className="text-black/50 italic">None recorded.</li>
+                  )}
+                </ul>
+              </section>
+
+              <section className="relative">
+                <h3 className="flex items-center space-x-2 text-sm font-typewriter uppercase tracking-widest text-black/70 mb-3 border-b border-black/20 pb-2">
+                  <Clock className="w-4 h-4" />
+                  <span>Claimed Alibi</span>
+                </h3>
+                <p className="text-lg leading-relaxed pl-6 border-l-4 border-mystery-brass/40">
+                  {alibi || <span className="text-black/50 italic">None recorded.</span>}
+                </p>
+              </section>
+            </div>
+
+            {/* Hidden Secrets Section */}
+            <section className="relative bg-black/[0.03] p-6 rounded border border-black/10 mt-12 shadow-inner">
+              <div className="absolute -top-4 left-6 bg-[#eeebd9] px-4 flex items-center space-x-3 cursor-pointer group" onClick={toggleReveal} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && toggleReveal()}>
+                <h3 className="flex items-center space-x-2 text-sm font-typewriter uppercase tracking-widest text-mystery-red font-bold">
+                  <AlertTriangle className="w-4 h-4" />
+                  <span>Classified Intel</span>
+                </h3>
+                <div className="p-1.5 rounded-full bg-mystery-red/10 text-mystery-red group-hover:bg-mystery-red group-hover:text-white transition-colors">
+                  {isRevealed ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </div>
-              ))}
-            </div>
-          </div>
+              </div>
 
+              <div className={`mt-4 transition-all duration-300 ${isRevealed ? 'opacity-100 blur-none' : 'opacity-80'}`}>
+                {isRevealed ? (
+                  <div className="space-y-6">
+                    <div>
+                      <p className="text-xs font-typewriter uppercase text-mystery-red/80 mb-1 flex items-center space-x-1"><Fingerprint className="w-3 h-3"/> <span>Motive</span></p>
+                      <p className="text-lg font-semibold leading-relaxed whitespace-pre-wrap">{motive}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-typewriter uppercase text-mystery-red/80 mb-1 flex items-center space-x-1"><Fingerprint className="w-3 h-3"/> <span>Secret Acts</span></p>
+                      <p className="text-lg font-semibold leading-relaxed whitespace-pre-wrap">{secret}</p>
+                    </div>
+                    {hiddenInfo && (
+                      <div>
+                        <p className="text-xs font-typewriter uppercase text-mystery-red/80 mb-1 flex items-center space-x-1"><Eye className="w-3 h-3"/> <span>Hidden Knowledge</span></p>
+                        <p className="text-lg font-semibold leading-relaxed whitespace-pre-wrap">{hiddenInfo}</p>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/diagonal-stripes.png')] opacity-10 pointer-events-none"></div>
+                    <div className="space-y-3 font-typewriter text-xl font-bold tracking-widest text-black/80 select-none">
+                      <span className="bg-black text-white px-2 py-0.5 inline-block -rotate-1">REDACTED</span>{' '}
+                      <span className="bg-black text-white px-2 py-0.5 inline-block rotate-1">REDACTED</span>{' '}
+                      <span className="bg-black text-white px-2 py-0.5 inline-block -rotate-2">REDACTED</span><br/>
+                      <span className="bg-black text-white px-2 py-0.5 inline-block rotate-2">REDACTED</span>{' '}
+                      <span className="bg-black text-white px-2 py-0.5 inline-block">REDACTED</span>
+                    </div>
+                    <p className="text-sm font-typewriter text-mystery-red mt-4 italic text-center opacity-70 animate-pulse motion-reduce:animate-none">Click to reveal confidential information</p>
+                  </div>
+                )}
+              </div>
+            </section>
+            
+          </div>
         </div>
       </div>
     </div>

@@ -4,15 +4,20 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Placeholder "dark mystery" palette — refine in Phase 5 polish.
         mystery: {
-          bg: '#0f0e17',
-          panel: '#1a1825',
-          accent: '#e63946',
-          text: '#fffffe',
-          muted: '#a7a9be',
+          bg: '#0b0a08',
+          panel: '#161310',
+          panelLight: '#1e1a15',
+          red: '#b3231c',
+          brass: '#d4a24c',
+          text: '#ece6d6',
+          textSecondary: '#8a8378',
         },
       },
+      fontFamily: {
+        typewriter: ['"Special Elite"', 'monospace'],
+        case: ['Lora', 'serif'],
+      }
     },
   },
   plugins: [],

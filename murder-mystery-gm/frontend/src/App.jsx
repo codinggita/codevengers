@@ -1,28 +1,38 @@
 import { useEffect, useState } from 'react';
 import { socket } from './socket';
+import { Skull, UserPlus, LogIn, AlertCircle } from 'lucide-react';
+import LobbyScreen from './LobbyScreen';
+import LoadingMystery from './LoadingMystery';
+import PublicInfoBar from './PublicInfoBar';
 import CharacterCard from './CharacterCard';
 import AdminTest from './AdminTest';
+
+const MIN_PLAYERS = 3;
 
 export default function App() {
   const [view, setView] = useState('home'); // home, lobby, generating, investigation
   const [playerName, setPlayerName] = useState('');
   const [roomCodeInput, setRoomCodeInput] = useState('');
   const [error, setError] = useState('');
-  
+  const [isStarting, setIsStarting] = useState(false);
+
   const [currentRoom, setCurrentRoom] = useState('');
   const [players, setPlayers] = useState([]);
-  const [isHost, setIsHost] = useState(false);
+  const [hostId, setHostId] = useState('');
   const [myCharacter, setMyCharacter] = useState(null);
-  
+  const [caseInfo, setCaseInfo] = useState(null);
+
   useEffect(() => {
-    function onPlayerListUpdate({ players, hostId }) {
-      setPlayers(players);
-      setIsHost(socket.id === hostId);
+    function onPlayerListUpdate({ players: updatedPlayers, hostId: updatedHostId }) {
+      setPlayers(updatedPlayers);
+      setHostId(updatedHostId);
     }
-    
-    function onGameStarted({ phase }) {
+
+    function onGameStarted({ phase, caseInfo: info }) {
       setView(phase);
-      if (phase === 'generating') setError(''); // Clear error when generation starts
+      setIsStarting(false);
+      if (phase === 'generating') setError('');
+      if (info) setCaseInfo(info);
     }
 
     function onCharacterAssigned(character) {
@@ -31,14 +41,15 @@ export default function App() {
 
     function onGameError({ message }) {
       setError(message);
+      setIsStarting(false);
       setView('lobby');
     }
-    
+
     socket.on('playerListUpdate', onPlayerListUpdate);
     socket.on('gameStarted', onGameStarted);
     socket.on('characterAssigned', onCharacterAssigned);
     socket.on('gameError', onGameError);
-    
+
     return () => {
       socket.off('playerListUpdate', onPlayerListUpdate);
       socket.off('gameStarted', onGameStarted);
@@ -47,20 +58,22 @@ export default function App() {
     };
   }, []);
 
+  // --- DEV Admin Panel ---
   if (import.meta.env.DEV && window.location.hash === '#admin') {
     return <AdminTest />;
   }
 
+  // --- Handlers ---
   const handleCreate = (e) => {
     e.preventDefault();
     setError('');
     if (!playerName.trim()) return setError('Please enter your name');
-    
+
     socket.emit('createRoom', playerName, (res) => {
       if (res.ok) {
         setCurrentRoom(res.roomCode);
         setPlayers(res.players);
-        setIsHost(res.isHost);
+        setHostId(res.hostId);
         setView('lobby');
       } else {
         setError(res.error);
@@ -78,137 +91,162 @@ export default function App() {
       if (res.ok) {
         setCurrentRoom(res.roomCode);
         setPlayers(res.players);
-        setIsHost(res.isHost);
+        setHostId(res.hostId);
         setView('lobby');
       } else {
         setError(res.error);
       }
     });
   };
-  
+
   const handleStartGame = () => {
     setError('');
+    setIsStarting(true);
     socket.emit('startGame', (res) => {
       if (!res?.ok) {
         setError(res?.error || 'Failed to start game');
+        setIsStarting(false);
       }
     });
   };
 
+  // =====================
+  //  ADAPTER LAYER
+  // =====================
+
+  // Map socket players array to LobbyScreen's expected shape
+  const lobbyPlayers = players.map(p => ({
+    id: p.id,
+    name: p.name,
+    isHost: p.id === hostId
+  }));
+
+  // Map socket character payload to CharacterCard props
+  const adaptCharacter = (char) => {
+    if (!char) return {};
+    return {
+      name: char.character_name,
+      background: char.public_bio + '\n\n' + char.private_bio,
+      secret: char.secrets?.join('\n'),
+      hiddenInfo: char.hidden_information?.join('\n'),
+      motive: char.personal_objective,
+      relationships: char.relationships || [],
+      alibi: char.alibi_claimed
+    };
+  };
+
+  // =====================
+  //  VIEWS
+  // =====================
+
   if (view === 'investigation') {
-    return <CharacterCard character={myCharacter} />;
+    const adapted = adaptCharacter(myCharacter);
+    return (
+      <div className="min-h-screen bg-mystery-bg">
+        <PublicInfoBar
+          title={caseInfo?.title}
+          victim={caseInfo?.victim}
+          location={caseInfo?.location}
+        />
+        <CharacterCard
+          name={adapted.name}
+          background={adapted.background}
+          secret={adapted.secret}
+          hiddenInfo={adapted.hiddenInfo}
+          motive={adapted.motive}
+          relationships={adapted.relationships}
+          alibi={adapted.alibi}
+        />
+      </div>
+    );
   }
 
   if (view === 'generating') {
-    return (
-      <div className="min-h-screen bg-mystery-bg text-mystery-text flex flex-col items-center justify-center p-6">
-        <div className="text-center space-y-6 max-w-md w-full animate-pulse">
-          <h2 className="text-3xl font-bold text-mystery-accent">Generating Mystery...</h2>
-          <p className="text-mystery-muted">The AI Game Master is weaving a web of deceit. Please wait...</p>
-        </div>
-      </div>
-    );
+    return <LoadingMystery />;
   }
 
   if (view === 'lobby') {
     return (
-      <div className="min-h-screen bg-mystery-bg text-mystery-text flex flex-col items-center p-6 pt-12">
-        <div className="max-w-md w-full bg-mystery-panel rounded-2xl shadow-2xl p-8 space-y-8 border border-mystery-muted/20">
-          <div className="text-center">
-            <h2 className="text-sm font-semibold tracking-widest text-mystery-muted uppercase mb-2">Room Code</h2>
-            <div className="text-5xl font-black text-mystery-accent tracking-widest">{currentRoom}</div>
-          </div>
-          
-          <div className="space-y-4">
-            <h3 className="text-lg font-medium text-mystery-text flex items-center justify-between">
-              <span>Players</span>
-              <span className="text-sm bg-mystery-bg px-3 py-1 rounded-full text-mystery-muted">{players.length} / 10</span>
-            </h3>
-            <ul className="space-y-2">
-              {players.map(p => (
-                <li key={p.id} className="flex items-center justify-between p-3 rounded-xl bg-mystery-bg border border-mystery-muted/10">
-                  <span className="font-medium">{p.name}</span>
-                  {/* Since host is always the first to join or gets reassigned to index 0, this works, but we also can check against hostId directly via isHost if it was this user, though we don't have hostId in state directly. Let's just visually highlight the host. Actually, checking if p.id === players[0]?.id is fine for now, or if we passed hostId explicitly. Let's just do players[0]. */}
-                  {p.id === players[0]?.id && <span className="text-xs bg-mystery-accent/20 text-mystery-accent px-2 py-1 rounded-md font-bold uppercase tracking-wider">Host</span>}
-                </li>
-              ))}
-            </ul>
-          </div>
-          
-          {error && <div className="p-3 rounded-lg bg-red-500/20 text-red-400 text-sm border border-red-500/50 text-center">{error}</div>}
-
-          <div className="pt-4">
-            {isHost ? (
-              <button 
-                onClick={handleStartGame}
-                disabled={players.length < 3}
-                className="w-full py-4 px-6 rounded-xl font-bold text-white bg-mystery-accent hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:scale-[1.02] active:scale-95 flex items-center justify-center shadow-lg shadow-mystery-accent/30"
-              >
-                {players.length < 3 ? `Need ${3 - players.length} more players` : 'Start Game'}
-              </button>
-            ) : (
-              <div className="text-center p-4 rounded-xl bg-mystery-bg border border-mystery-muted/20">
-                <span className="text-mystery-muted flex items-center justify-center gap-2">
-                  <svg className="animate-spin h-4 w-4 text-mystery-accent" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                  Waiting for host to start...
-                </span>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
+      <LobbyScreen
+        players={lobbyPlayers}
+        currentUserId={socket.id}
+        isHost={socket.id === hostId}
+        roomCode={currentRoom}
+        minPlayers={MIN_PLAYERS}
+        onStartGame={handleStartGame}
+        isStarting={isStarting}
+        error={error}
+      />
     );
   }
 
+  // =====================
+  //  HOME SCREEN
+  // =====================
   return (
-    <div className="min-h-screen bg-mystery-bg text-mystery-text flex flex-col items-center justify-center p-6">
+    <div className="min-h-screen bg-mystery-bg text-mystery-text flex flex-col items-center justify-center p-6 font-case">
       <div className="max-w-md w-full text-center space-y-8">
-        <div className="space-y-2">
-          <h1 className="text-4xl font-black tracking-tight text-white drop-shadow-sm">
-            AI Game Master <span className="block text-mystery-accent mt-1">Murder Mystery</span>
+
+        {/* Title */}
+        <div className="space-y-3">
+          <Skull className="w-12 h-12 text-mystery-red mx-auto mb-2" />
+          <h1 className="text-5xl font-typewriter tracking-widest uppercase text-mystery-text leading-tight">
+            Murder<br/>Mystery
           </h1>
-          <p className="text-mystery-muted">Enter a world of deceit and betrayal.</p>
+          <p className="text-mystery-textSecondary italic text-lg">A case of deceit and betrayal awaits.</p>
         </div>
-        
-        <div className="bg-mystery-panel p-8 rounded-3xl shadow-2xl border border-mystery-muted/10">
-          <form className="space-y-6">
+
+        {/* Form Panel */}
+        <div className="bg-mystery-panel p-8 rounded-sm shadow-2xl border border-[#2a251e] space-y-6 relative overflow-hidden">
+          {/* Decorative pin */}
+          <div className="absolute top-0 left-8 w-3 h-3 rounded-full bg-mystery-red border border-mystery-brass shadow-md transform -translate-y-1/2"></div>
+
+          <form className="space-y-5">
             <div>
-              <label className="block text-left text-sm font-medium text-mystery-muted mb-2">Your Name</label>
-              <input 
-                type="text" 
+              <label className="block text-left text-xs font-typewriter uppercase tracking-wider text-mystery-textSecondary mb-2">
+                Your Identity
+              </label>
+              <input
+                type="text"
                 value={playerName}
                 onChange={e => setPlayerName(e.target.value)}
-                placeholder="Detective Bob"
-                className="w-full bg-mystery-bg border border-mystery-muted/30 rounded-xl px-4 py-3 text-white placeholder-mystery-muted/50 focus:outline-none focus:ring-2 focus:ring-mystery-accent focus:border-transparent transition-all"
+                placeholder="Enter your name"
+                className="w-full bg-black/30 border border-[#3a332a] rounded px-4 py-3 text-mystery-text placeholder-mystery-textSecondary/50 focus:outline-none focus:ring-2 focus:ring-mystery-brass focus:border-transparent transition-all font-case"
               />
             </div>
-            
-            {error && <div className="p-3 rounded-lg bg-red-500/20 text-red-400 text-sm border border-red-500/50 text-left">{error}</div>}
 
-            <div className="grid grid-cols-2 gap-4 pt-2">
-              <button 
+            {error && (
+              <div className="p-3 bg-mystery-red/10 border border-mystery-red/30 rounded flex items-start space-x-2 text-mystery-red text-sm font-typewriter">
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                <span>{error}</span>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+              <button
                 onClick={handleCreate}
                 type="button"
-                className="col-span-2 sm:col-span-1 py-3 px-4 rounded-xl font-bold text-white bg-mystery-accent hover:bg-red-600 transition-all transform hover:scale-[1.02] active:scale-95 shadow-lg shadow-mystery-accent/20"
+                className="flex items-center justify-center space-x-2 py-3 px-4 rounded font-typewriter uppercase tracking-wider text-white bg-mystery-red hover:bg-red-800 transition-all shadow-lg hover:shadow-mystery-red/20 hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0"
               >
-                Create Game
+                <UserPlus className="w-4 h-4" />
+                <span>Create Game</span>
               </button>
-              
-              <div className="col-span-2 sm:col-span-1 flex gap-2">
-                <input 
-                  type="text" 
+
+              <div className="flex gap-2">
+                <input
+                  type="text"
                   value={roomCodeInput}
                   onChange={e => setRoomCodeInput(e.target.value.toUpperCase())}
                   placeholder="CODE"
                   maxLength={5}
-                  className="w-full bg-mystery-bg border border-mystery-muted/30 rounded-xl px-4 py-3 text-white placeholder-mystery-muted/50 text-center font-bold tracking-widest focus:outline-none focus:ring-2 focus:ring-mystery-muted transition-all uppercase"
+                  className="w-full bg-black/30 border border-[#3a332a] rounded px-3 py-3 text-mystery-brass placeholder-mystery-textSecondary/50 text-center font-typewriter tracking-widest uppercase focus:outline-none focus:ring-2 focus:ring-mystery-brass transition-all"
                 />
-                <button 
+                <button
                   onClick={handleJoin}
                   type="button"
-                  className="py-3 px-6 rounded-xl font-bold text-mystery-bg bg-white hover:bg-gray-200 transition-all transform hover:scale-[1.02] active:scale-95"
+                  className="py-3 px-5 rounded font-typewriter uppercase tracking-wider bg-mystery-brass text-black hover:bg-yellow-600 transition-all shadow-lg hover:-translate-y-0.5 active:translate-y-0 shrink-0"
                 >
-                  Join
+                  <LogIn className="w-4 h-4" />
                 </button>
               </div>
             </div>
