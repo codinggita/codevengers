@@ -116,7 +116,14 @@ export function registerSocketHandlers(io) {
         
         console.log("✅ Mystery generated successfully!");
         room.phase = 'investigation';
-        io.to(roomCode).emit('gameStarted', { phase: 'investigation' });
+        io.to(roomCode).emit('gameStarted', { 
+          phase: 'investigation',
+          caseInfo: {
+            title: mystery.case_title,
+            victim: mystery.victim?.name,
+            location: mystery.setting
+          }
+        });
 
       } catch (err) {
         console.error(`[${roomCode}] Mystery generation failed:`, err);
