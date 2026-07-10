@@ -1,16 +1,20 @@
 import { useEffect, useState } from 'react';
 import { socket } from './socket';
-import { Skull, UserPlus, LogIn, AlertCircle } from 'lucide-react';
+import { Skull, UserPlus, LogIn, AlertCircle, Users, FileSearch, Fingerprint } from 'lucide-react';
 import LobbyScreen from './LobbyScreen';
 import LoadingMystery from './LoadingMystery';
 import PublicInfoBar from './PublicInfoBar';
 import CharacterCard from './CharacterCard';
+import InvestigateTab from './InvestigateTab';
+import AccuseTab from './AccuseTab';
+import RevealScreen from './RevealScreen';
+import PlayerGrid from './PlayerGrid';
 import AdminTest from './AdminTest';
 
 const MIN_PLAYERS = 3;
 
 export default function App() {
-  const [view, setView] = useState('home'); // home, lobby, generating, investigation
+  const [view, setView] = useState('home'); // home, lobby, loading, game, reveal
   const [playerName, setPlayerName] = useState('');
   const [roomCodeInput, setRoomCodeInput] = useState('');
   const [error, setError] = useState('');
@@ -21,6 +25,16 @@ export default function App() {
   const [hostId, setHostId] = useState('');
   const [myCharacter, setMyCharacter] = useState(null);
   const [caseInfo, setCaseInfo] = useState(null);
+  
+  const [typingPlayers, setTypingPlayers] = useState({});
+  const [gmSpeaking, setGmSpeaking] = useState(false);
+
+  // Phase 3 State
+  const [gameTab, setGameTab] = useState('dossier'); // dossier, investigate, accuse
+  const [sharedClues, setSharedClues] = useState([]);
+  const [hasVoted, setHasVoted] = useState(false);
+  const [voteCount, setVoteCount] = useState(0);
+  const [revealData, setRevealData] = useState(null);
 
   useEffect(() => {
     function onPlayerListUpdate({ players: updatedPlayers, hostId: updatedHostId }) {
@@ -28,35 +42,96 @@ export default function App() {
       setHostId(updatedHostId);
     }
 
-    function onGameStarted({ phase, caseInfo: info }) {
-      setView(phase);
-      setIsStarting(false);
-      if (phase === 'generating') setError('');
-      if (info) setCaseInfo(info);
+    function onGamePhase({ phase }) {
+      if (phase === 'loading') {
+        setView('loading');
+        setIsStarting(false);
+        setError('');
+      } else if (phase === 'lobby') {
+        setView('lobby');
+        setIsStarting(false);
+        setError('');
+        setRevealData(null);
+        setMyCharacter(null);
+        setCaseInfo(null);
+        setHasVoted(false);
+        setVoteCount(0);
+        setSharedClues([]);
+      }
     }
 
-    function onCharacterAssigned(character) {
+    function onMysteryReady({ publicInfo }) {
+      setCaseInfo(publicInfo);
+      setView('game');
+      setGameTab('dossier');
+      setSharedClues([]);
+      setHasVoted(false);
+      setVoteCount(0);
+    }
+
+    function onYourCharacter(character) {
       setMyCharacter(character);
+    }
+    
+    function onClueDiscovered(clue) {
+      setSharedClues(prev => {
+        if (prev.some(c => c.id === clue.id)) return prev;
+        return [...prev, clue];
+      });
+    }
+    
+    function onVoteCast({ voterName }) {
+      setVoteCount(prev => prev + 1);
+    }
+    
+    function onFinalReveal(data) {
+      setRevealData(data);
+      setView('reveal');
     }
 
     function onGameError({ message }) {
       setError(message);
       setIsStarting(false);
-      setView('lobby');
+      if (view === 'loading') setView('lobby');
     }
 
-    socket.on('playerListUpdate', onPlayerListUpdate);
-    socket.on('gameStarted', onGameStarted);
-    socket.on('characterAssigned', onCharacterAssigned);
+    function onPlayerTypingUpdate({ playerId, playerName, isTyping }) {
+      setTypingPlayers(prev => {
+        const next = { ...prev };
+        if (isTyping) {
+          next[playerId] = playerName;
+        } else {
+          delete next[playerId];
+        }
+        return next;
+      });
+    }
+
+    if (view === 'game' || view === 'lobby') {
+      socket.on('playerListUpdate', onPlayerListUpdate);
+      socket.on('playerTypingUpdate', onPlayerTypingUpdate);
+    }
+
+    socket.on('gamePhase', onGamePhase);
+    socket.on('mysteryReady', onMysteryReady);
+    socket.on('yourCharacter', onYourCharacter);
+    socket.on('clueDiscovered', onClueDiscovered);
+    socket.on('voteCast', onVoteCast);
+    socket.on('finalReveal', onFinalReveal);
     socket.on('gameError', onGameError);
 
     return () => {
       socket.off('playerListUpdate', onPlayerListUpdate);
-      socket.off('gameStarted', onGameStarted);
-      socket.off('characterAssigned', onCharacterAssigned);
+      socket.off('playerTypingUpdate', onPlayerTypingUpdate);
+      socket.off('gamePhase', onGamePhase);
+      socket.off('mysteryReady', onMysteryReady);
+      socket.off('yourCharacter', onYourCharacter);
+      socket.off('clueDiscovered', onClueDiscovered);
+      socket.off('voteCast', onVoteCast);
+      socket.off('finalReveal', onFinalReveal);
       socket.off('gameError', onGameError);
     };
-  }, []);
+  }, [view]);
 
   // --- DEV Admin Panel ---
   if (import.meta.env.DEV && window.location.hash === '#admin') {
@@ -102,7 +177,7 @@ export default function App() {
   const handleStartGame = () => {
     setError('');
     setIsStarting(true);
-    socket.emit('startGame', (res) => {
+    socket.emit('startGame', { roomCode: currentRoom }, (res) => {
       if (!res?.ok) {
         setError(res?.error || 'Failed to start game');
         setIsStarting(false);
@@ -110,18 +185,25 @@ export default function App() {
     });
   };
 
+  const handleVote = (accusedId, motive) => {
+    socket.emit('submitVote', { accusedId, motive });
+    setHasVoted(true);
+  };
+
+  const handleReturnToLobby = () => {
+    socket.emit('returnToLobby');
+  };
+
   // =====================
   //  ADAPTER LAYER
   // =====================
 
-  // Map socket players array to LobbyScreen's expected shape
   const lobbyPlayers = players.map(p => ({
     id: p.id,
     name: p.name,
     isHost: p.id === hostId
   }));
 
-  // Map socket character payload to CharacterCard props
   const adaptCharacter = (char) => {
     if (!char) return {};
     return {
@@ -139,29 +221,89 @@ export default function App() {
   //  VIEWS
   // =====================
 
-  if (view === 'investigation') {
-    const adapted = adaptCharacter(myCharacter);
+  if (view === 'reveal' && revealData) {
     return (
-      <div className="min-h-screen bg-mystery-bg">
+      <RevealScreen 
+        revealData={revealData}
+        isHost={socket.id === hostId}
+        onReturnToLobby={handleReturnToLobby}
+        setGmSpeaking={setGmSpeaking}
+      />
+    );
+  }
+
+  if (view === 'game') {
+    const adapted = adaptCharacter(myCharacter);
+    
+    return (
+      <div className="min-h-screen bg-mystery-bg flex flex-col pb-20">
         <PublicInfoBar
           title={caseInfo?.title}
           victim={caseInfo?.victim}
           location={caseInfo?.location}
+          round={caseInfo?.round}
+          totalRounds={caseInfo?.totalRounds}
         />
-        <CharacterCard
-          name={adapted.name}
-          background={adapted.background}
-          secret={adapted.secret}
-          hiddenInfo={adapted.hiddenInfo}
-          motive={adapted.motive}
-          relationships={adapted.relationships}
-          alibi={adapted.alibi}
-        />
+
+        <PlayerGrid players={players} typingPlayers={typingPlayers} gmSpeaking={gmSpeaking} />
+        
+        <div className="flex-1">
+          {gameTab === 'dossier' && (
+            <CharacterCard
+              name={adapted.name}
+              background={adapted.background}
+              secret={adapted.secret}
+              hiddenInfo={adapted.hiddenInfo}
+              motive={adapted.motive}
+              relationships={adapted.relationships}
+              alibi={adapted.alibi}
+            />
+          )}
+          {gameTab === 'investigate' && (
+            <InvestigateTab 
+              sharedClues={sharedClues} 
+              setGmSpeaking={setGmSpeaking} 
+              typingPlayers={typingPlayers}
+            />
+          )}
+          {gameTab === 'accuse' && (
+            <AccuseTab 
+              players={players} 
+              currentUserId={socket.id}
+              hasVoted={hasVoted}
+              voteCount={voteCount}
+              totalPlayers={players.length}
+              onVote={handleVote}
+            />
+          )}
+        </div>
+
+        {/* Bottom Navigation */}
+        <div className="fixed bottom-0 w-full bg-[#110e0c] border-t border-[#2a251e] flex justify-around p-3 z-50 shadow-[0_-10px_30px_rgba(0,0,0,0.8)]">
+          <button 
+            onClick={() => setGameTab('dossier')}
+            className={`font-typewriter tracking-widest text-sm uppercase px-4 py-2 rounded transition-colors ${gameTab === 'dossier' ? 'text-mystery-brass bg-[#2a251e]' : 'text-mystery-textSecondary hover:text-mystery-text'}`}
+          >
+            Dossier
+          </button>
+          <button 
+            onClick={() => setGameTab('investigate')}
+            className={`font-typewriter tracking-widest text-sm uppercase px-4 py-2 rounded transition-colors ${gameTab === 'investigate' ? 'text-mystery-brass bg-[#2a251e]' : 'text-mystery-textSecondary hover:text-mystery-text'}`}
+          >
+            Investigate
+          </button>
+          <button 
+            onClick={() => setGameTab('accuse')}
+            className={`font-typewriter tracking-widest text-sm uppercase px-4 py-2 rounded transition-colors ${gameTab === 'accuse' ? 'text-mystery-red bg-[#3a1010]' : 'text-mystery-red/60 hover:text-mystery-red'}`}
+          >
+            Accuse
+          </button>
+        </div>
       </div>
     );
   }
 
-  if (view === 'generating') {
+  if (view === 'loading') {
     return <LoadingMystery />;
   }
 
@@ -187,7 +329,6 @@ export default function App() {
     <div className="min-h-screen bg-mystery-bg text-mystery-text flex flex-col items-center justify-center p-6 font-case">
       <div className="max-w-md w-full text-center space-y-8">
 
-        {/* Title */}
         <div className="space-y-3">
           <Skull className="w-12 h-12 text-mystery-red mx-auto mb-2" />
           <h1 className="text-5xl font-typewriter tracking-widest uppercase text-mystery-text leading-tight">
@@ -196,9 +337,7 @@ export default function App() {
           <p className="text-mystery-textSecondary italic text-lg">A case of deceit and betrayal awaits.</p>
         </div>
 
-        {/* Form Panel */}
         <div className="bg-mystery-panel p-8 rounded-sm shadow-2xl border border-[#2a251e] space-y-6 relative overflow-hidden">
-          {/* Decorative pin */}
           <div className="absolute top-0 left-8 w-3 h-3 rounded-full bg-mystery-red border border-mystery-brass shadow-md transform -translate-y-1/2"></div>
 
           <form className="space-y-5">

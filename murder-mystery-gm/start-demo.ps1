@@ -59,8 +59,10 @@ try {
         exit 1
     }
     $scriptRoot = (Get-Location).Path
-    Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$scriptRoot\backend'; npm run dev"
-    Write-Host "✅ Backend starting on port 4000." -ForegroundColor Green
+    $vercelOrigin = "https://frontend-lac-rho-b8ae5juqzw.vercel.app"
+    $clientOrigins = "http://localhost:5173,$vercelOrigin"
+    Start-Process powershell -ArgumentList "-NoExit", "-Command", "`$env:CLIENT_ORIGIN='$clientOrigins'; cd '$scriptRoot\backend'; npm run dev"
+    Write-Host "✅ Backend starting on port 4000 (CORS: localhost + Vercel)." -ForegroundColor Green
 } catch {
     Write-Host "❌ ERROR: Failed to start backend." -ForegroundColor Red
     exit 1
