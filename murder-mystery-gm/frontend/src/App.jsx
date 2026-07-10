@@ -299,7 +299,7 @@ export default function App() {
             Accuse
           </button>
         </div>
-      </div>
+    </div>
     );
   }
 
@@ -326,72 +326,92 @@ export default function App() {
   //  HOME SCREEN
   // =====================
   return (
-    <div className="min-h-screen bg-mystery-bg text-mystery-text flex flex-col items-center justify-center p-6 font-case">
-      <div className="max-w-md w-full text-center space-y-8">
-
-        <div className="space-y-3">
-          <Skull className="w-12 h-12 text-mystery-red mx-auto mb-2" />
-          <h1 className="text-5xl font-typewriter tracking-widest uppercase text-mystery-text leading-tight">
-            Murder<br/>Mystery
-          </h1>
-          <p className="text-mystery-textSecondary italic text-lg">A case of deceit and betrayal awaits.</p>
+    <div className="home-case-page min-h-screen text-mystery-text font-case">
+      <div className="home-case-grain" aria-hidden="true" />
+      <main className="home-case-shell">
+        <div className="home-case-folder" aria-hidden="true">
+          <div className="home-case-tab">CONFIDENTIAL</div>
+          <div className="home-case-cover">
+            <Skull className="home-case-cover-mark" />
+            <p>Case file no. MM-01</p>
+            <strong>Murder Mystery</strong>
+          </div>
         </div>
 
-        <div className="bg-mystery-panel p-8 rounded-sm shadow-2xl border border-[#2a251e] space-y-6 relative overflow-hidden">
-          <div className="absolute top-0 left-8 w-3 h-3 rounded-full bg-mystery-red border border-mystery-brass shadow-md transform -translate-y-1/2"></div>
+        <section className="home-case-content" aria-label="Murder Mystery game entry">
+          <header className="home-case-header">
+            <p className="home-case-eyebrow">Case file no. MM-01 · Active investigation</p>
+            <h1>Murder<br /><span>Mystery</span></h1>
+            <p className="home-case-tagline">Every table holds a secret. Every secret leaves a trace.</p>
+          </header>
 
-          <form className="space-y-5">
-            <div>
-              <label className="block text-left text-xs font-typewriter uppercase tracking-wider text-mystery-textSecondary mb-2">
-                Your Identity
-              </label>
+          <div className="home-case-dossier">
+            <div className="home-case-fastener" aria-hidden="true" />
+            <p className="home-case-section-label">Player credentials</p>
+
+            <form className="home-case-form">
+              <label className="home-case-label" htmlFor="player-name">Your identity</label>
               <input
+                id="player-name"
                 type="text"
                 value={playerName}
                 onChange={e => setPlayerName(e.target.value)}
                 placeholder="Enter your name"
-                className="w-full bg-black/30 border border-[#3a332a] rounded px-4 py-3 text-mystery-text placeholder-mystery-textSecondary/50 focus:outline-none focus:ring-2 focus:ring-mystery-brass focus:border-transparent transition-all font-case"
+                className="home-case-input"
               />
-            </div>
 
-            {error && (
-              <div className="p-3 bg-mystery-red/10 border border-mystery-red/30 rounded flex items-start space-x-2 text-mystery-red text-sm font-typewriter">
-                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                <span>{error}</span>
-              </div>
-            )}
+              {error && (
+                <div className="home-case-error" role="alert">
+                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                  <span>{error}</span>
+                </div>
+              )}
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-              <button
-                onClick={handleCreate}
-                type="button"
-                className="flex items-center justify-center space-x-2 py-3 px-4 rounded font-typewriter uppercase tracking-wider text-white bg-mystery-red hover:bg-red-800 transition-all shadow-lg hover:shadow-mystery-red/20 hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0"
-              >
-                <UserPlus className="w-4 h-4" />
-                <span>Create Game</span>
-              </button>
-
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={roomCodeInput}
-                  onChange={e => setRoomCodeInput(e.target.value.toUpperCase())}
-                  placeholder="CODE"
-                  maxLength={5}
-                  className="w-full bg-black/30 border border-[#3a332a] rounded px-3 py-3 text-mystery-brass placeholder-mystery-textSecondary/50 text-center font-typewriter tracking-widest uppercase focus:outline-none focus:ring-2 focus:ring-mystery-brass transition-all"
-                />
+              <div className="home-case-actions">
                 <button
-                  onClick={handleJoin}
+                  onClick={handleCreate}
                   type="button"
-                  className="py-3 px-5 rounded font-typewriter uppercase tracking-wider bg-mystery-brass text-black hover:bg-yellow-600 transition-all shadow-lg hover:-translate-y-0.5 active:translate-y-0 shrink-0"
+                  className="home-case-create"
                 >
-                  <LogIn className="w-4 h-4" />
+                  <UserPlus className="w-4 h-4" />
+                  <span>Create game</span>
                 </button>
+
+                <details className="home-case-join">
+                  <summary>
+                    <LogIn className="w-4 h-4" />
+                    <span>Join game</span>
+                  </summary>
+                  <div className="home-case-join-panel">
+                    <label className="home-case-label" htmlFor="room-code">Room code</label>
+                    <div className="home-case-code-row">
+                      <input
+                        id="room-code"
+                        type="text"
+                        value={roomCodeInput}
+                        onChange={e => setRoomCodeInput(e.target.value.toUpperCase())}
+                        placeholder="CODE"
+                        maxLength={5}
+                        className="home-case-input home-case-code-input"
+                      />
+                      <button
+                        onClick={handleJoin}
+                        type="button"
+                        className="home-case-enter"
+                        aria-label="Join game"
+                      >
+                        Enter
+                      </button>
+                    </div>
+                  </div>
+                </details>
               </div>
-            </div>
-          </form>
-        </div>
-      </div>
+            </form>
+          </div>
+
+          <p className="home-case-footer">Issued for tonight’s investigation · Trust no alibi</p>
+        </section>
+      </main>
     </div>
   );
 }
