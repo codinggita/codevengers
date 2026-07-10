@@ -1,6 +1,15 @@
 import { customAlphabet } from 'nanoid';
+import { generateMystery } from '../ai/mysteryGenerator.js';
 
-// In-memory game state. Fine for a hackathon — swap for Redis only if you
+// Simple Fisher-Yates shuffle helper
+function shuffleArray(array) {
+  const arr = [...array];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}// In-memory game state. Fine for a hackathon — swap for Redis only if you
 // end up needing multi-instance scaling (you almost certainly won't).
 const rooms = new Map(); // roomCode -> { players: [], hostId, phase, ... }
 const socketToRoom = new Map(); // socket.id -> roomCode
@@ -59,7 +68,7 @@ export function registerSocketHandlers(io) {
       callback?.({ ok: true, roomCode, isHost: false, players: room.players, hostId: room.hostId });
     });
 
-    socket.on('startGame', (callback) => {
+    socket.on('startGame', async (callback) => {
       const roomCode = socketToRoom.get(socket.id);
       if (!roomCode) return callback?.({ ok: false, error: 'Not in a room' });
 
@@ -67,10 +76,49 @@ export function registerSocketHandlers(io) {
       if (!room) return callback?.({ ok: false, error: 'Room not found' });
       if (room.hostId !== socket.id) return callback?.({ ok: false, error: 'Only the host can start the game' });
       if (room.players.length < 3) return callback?.({ ok: false, error: 'Need at least 3 players to start' });
+      if (room.phase !== 'lobby') return callback?.({ ok: false, error: 'Game is already starting or running' });
 
       room.phase = 'generating';
       io.to(roomCode).emit('gameStarted', { phase: 'generating' });
       callback?.({ ok: true });
+
+      try {
+        const mystery = await generateMystery(room.players.length);
+        room.mystery = mystery;
+        
+        // Randomly shuffle the generated characters so it's not based on join order
+        const shuffledCharacters = shuffleArray(mystery.players);
+        
+        // Assign one character to each player
+        for (let i = 0; i < room.players.length; i++) {
+          const player = room.players[i];
+          const char = shuffledCharacters[i];
+          
+          player.character = char; // Store server-side
+          
+          // Send private scrubbed data to the client
+          const scrubbedChar = {
+            character_name: char.character_name,
+            public_bio: char.public_bio,
+            private_bio: char.private_bio,
+            personal_objective: char.personal_objective,
+            hidden_information: char.hidden_information,
+            secrets: char.secrets.map(s => s.content), // Only send the content, no metadata needed on client right now
+            relationships: char.relationships,
+            alibi_claimed: char.alibi_claimed
+          };
+          
+          io.to(player.id).emit('characterAssigned', scrubbedChar);
+        }
+        
+        room.phase = 'investigation';
+        io.to(roomCode).emit('gameStarted', { phase: 'investigation' });
+
+      } catch (err) {
+        console.error(`[${roomCode}] Mystery generation failed:`, err);
+        room.phase = 'lobby';
+        io.to(roomCode).emit('gameError', { message: 'Failed to generate mystery. The AI Game Master stumbled. Please try again.' });
+      }
     });
 
     socket.on('disconnect', () => {
