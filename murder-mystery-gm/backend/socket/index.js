@@ -1,33 +1,100 @@
+import { customAlphabet } from 'nanoid';
+
 // In-memory game state. Fine for a hackathon — swap for Redis only if you
 // end up needing multi-instance scaling (you almost certainly won't).
 const rooms = new Map(); // roomCode -> { players: [], hostId, phase, ... }
+const socketToRoom = new Map(); // socket.id -> roomCode
+
+// Exclude ambiguous chars like 0, O, 1, I
+const generateRoomCode = customAlphabet('ABCDEFGHJKLMNPQRSTUVWXYZ23456789', 5);
 
 export function registerSocketHandlers(io) {
   io.on('connection', (socket) => {
     console.log(`🔌 Client connected: ${socket.id}`);
 
-    // --- Phase 0: connectivity test ---
-    // Frontend emits 'ping', we respond with 'pong'. This is what proves
-    // the "frontend + backend connected via Socket.io" deliverable.
     socket.on('ping', (payload) => {
       socket.emit('pong', { received: payload, at: Date.now() });
     });
 
-    // --- Phase 1 stubs (Lobby System) ---
-    // Fill these in next: create/join room, broadcast player list, etc.
     socket.on('createRoom', (playerName, callback) => {
-      // TODO: generate room code (nanoid), create room, add player as host
-      callback?.({ ok: false, error: 'Not implemented yet — Phase 1' });
+      playerName = playerName?.trim();
+      if (!playerName) return callback?.({ ok: false, error: 'Player name is required' });
+
+      const roomCode = generateRoomCode();
+      const newPlayer = { id: socket.id, name: playerName };
+
+      rooms.set(roomCode, {
+        hostId: socket.id,
+        phase: 'lobby',
+        players: [newPlayer],
+      });
+      socketToRoom.set(socket.id, roomCode);
+      socket.join(roomCode);
+
+      callback?.({ ok: true, roomCode, isHost: true, players: [newPlayer], hostId: socket.id });
     });
 
     socket.on('joinRoom', ({ roomCode, playerName }, callback) => {
-      // TODO: validate room exists, add player, broadcast updated player list
-      callback?.({ ok: false, error: 'Not implemented yet — Phase 1' });
+      roomCode = roomCode?.trim().toUpperCase();
+      playerName = playerName?.trim();
+
+      if (!roomCode || !playerName) return callback?.({ ok: false, error: 'Room code and player name are required' });
+
+      const room = rooms.get(roomCode);
+      if (!room) return callback?.({ ok: false, error: 'Room not found' });
+      if (room.phase !== 'lobby') return callback?.({ ok: false, error: 'Game already started' });
+      
+      // Case-insensitive name uniqueness check
+      if (room.players.some(p => p.name.toLowerCase() === playerName.toLowerCase())) {
+        return callback?.({ ok: false, error: 'Name already taken in this room' });
+      }
+
+      const newPlayer = { id: socket.id, name: playerName };
+      room.players.push(newPlayer);
+      socketToRoom.set(socket.id, roomCode);
+      socket.join(roomCode);
+
+      // Broadcast to everyone in the room (including the joiner, to keep everything synced if needed, but ack has it too)
+      io.to(roomCode).emit('playerListUpdate', { players: room.players, hostId: room.hostId });
+      callback?.({ ok: true, roomCode, isHost: false, players: room.players, hostId: room.hostId });
+    });
+
+    socket.on('startGame', (callback) => {
+      const roomCode = socketToRoom.get(socket.id);
+      if (!roomCode) return callback?.({ ok: false, error: 'Not in a room' });
+
+      const room = rooms.get(roomCode);
+      if (!room) return callback?.({ ok: false, error: 'Room not found' });
+      if (room.hostId !== socket.id) return callback?.({ ok: false, error: 'Only the host can start the game' });
+      if (room.players.length < 3) return callback?.({ ok: false, error: 'Need at least 3 players to start' });
+
+      room.phase = 'generating';
+      io.to(roomCode).emit('gameStarted', { phase: 'generating' });
+      callback?.({ ok: true });
     });
 
     socket.on('disconnect', () => {
       console.log(`❌ Client disconnected: ${socket.id}`);
-      // TODO: remove player from their room, broadcast updated player list
+      const roomCode = socketToRoom.get(socket.id);
+      if (roomCode) {
+        socketToRoom.delete(socket.id);
+        const room = rooms.get(roomCode);
+        if (room) {
+          room.players = room.players.filter(p => p.id !== socket.id);
+          
+          if (room.players.length === 0) {
+            rooms.delete(roomCode);
+            console.log(`🧹 Room ${roomCode} deleted (empty)`);
+          } else {
+            // Reassign host if the host left
+            if (room.hostId === socket.id) {
+              room.hostId = room.players[0].id;
+              console.log(`👑 Room ${roomCode} new host: ${room.hostId}`);
+            }
+            io.to(roomCode).emit('playerListUpdate', { players: room.players, hostId: room.hostId });
+          }
+        }
+      }
     });
   });
 }
