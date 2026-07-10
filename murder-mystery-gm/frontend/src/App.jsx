@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { socket } from './socket';
+import CharacterCard from './CharacterCard';
 
 export default function App() {
-  const [view, setView] = useState('home'); // home, lobby, generating
+  const [view, setView] = useState('home'); // home, lobby, generating, investigation
   const [playerName, setPlayerName] = useState('');
   const [roomCodeInput, setRoomCodeInput] = useState('');
   const [error, setError] = useState('');
@@ -10,6 +11,7 @@ export default function App() {
   const [currentRoom, setCurrentRoom] = useState('');
   const [players, setPlayers] = useState([]);
   const [isHost, setIsHost] = useState(false);
+  const [myCharacter, setMyCharacter] = useState(null);
   
   useEffect(() => {
     function onPlayerListUpdate({ players, hostId }) {
@@ -19,14 +21,28 @@ export default function App() {
     
     function onGameStarted({ phase }) {
       setView(phase);
+      if (phase === 'generating') setError(''); // Clear error when generation starts
+    }
+
+    function onCharacterAssigned(character) {
+      setMyCharacter(character);
+    }
+
+    function onGameError({ message }) {
+      setError(message);
+      setView('lobby');
     }
     
     socket.on('playerListUpdate', onPlayerListUpdate);
     socket.on('gameStarted', onGameStarted);
+    socket.on('characterAssigned', onCharacterAssigned);
+    socket.on('gameError', onGameError);
     
     return () => {
       socket.off('playerListUpdate', onPlayerListUpdate);
       socket.off('gameStarted', onGameStarted);
+      socket.off('characterAssigned', onCharacterAssigned);
+      socket.off('gameError', onGameError);
     };
   }, []);
 
@@ -73,6 +89,10 @@ export default function App() {
       }
     });
   };
+
+  if (view === 'investigation') {
+    return <CharacterCard character={myCharacter} />;
+  }
 
   if (view === 'generating') {
     return (
