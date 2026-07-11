@@ -2,8 +2,11 @@ import { useState, useEffect, useRef } from 'react';
 import { socket } from './socket';
 import { Search, ChevronRight, FileSearch, Sparkles, Mic } from 'lucide-react';
 import { speakGameMaster } from './utils/speech';
+import { useTheme } from './themes/ThemeProvider';
 
 export default function InvestigateTab({ sharedClues, typingPlayers, setGmSpeaking }) {
+  const theme = useTheme();
+  const EvidenceIcon = theme?.icons.evidence;
   const [input, setInput] = useState('');
   const [isInvestigating, setIsInvestigating] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
@@ -227,18 +230,17 @@ export default function InvestigateTab({ sharedClues, typingPlayers, setGmSpeaki
       </div>
 
       {/* Side Panel: Evidence Board */}
-      <div className="hidden md:flex flex-col w-80 bg-[#161310] border border-[#2a251e] rounded shadow-2xl p-4 shrink-0 overflow-y-auto custom-scrollbar relative">
-        <div className="flex items-center space-x-2 text-mystery-brass mb-6 border-b border-[#2a251e] pb-2">
-          <FileSearch className="w-5 h-5" />
-          <h3 className="font-typewriter uppercase tracking-widest text-sm">Evidence Board</h3>
+      <div className="theme-gift-table hidden md:flex flex-col w-80 bg-[#161310] border border-[#2a251e] rounded shadow-2xl p-4 shrink-0 overflow-y-auto custom-scrollbar relative">
+        <div className="theme-gift-table-header flex items-center space-x-2 text-mystery-brass mb-6 pb-2">
+          {EvidenceIcon ? <EvidenceIcon className="w-5 h-5" /> : <FileSearch className="w-5 h-5" />}
+          <h3 className="font-typewriter uppercase tracking-widest text-sm">
+            {theme?.labels?.evidenceBoard || 'Evidence Board'}
+          </h3>
         </div>
         <div className="space-y-4">
           {sharedClues.map(clue => (
-            <div key={clue.id} className="relative p-4 bg-[#fffdf0] border border-[#d6d0c4] rounded-sm shadow-[2px_3px_5px_rgba(0,0,0,0.4)] text-black animate-pin-drop">
-              {/* Red Pin */}
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-4 h-4 bg-mystery-red rounded-full shadow-md border-b border-black/40">
-                <div className="absolute top-[2px] left-[2px] w-1.5 h-1.5 bg-white/40 rounded-full"></div>
-              </div>
+            <div key={clue.id} className="theme-gift-tag relative p-4 bg-[#fffdf0] border border-[#d6d0c4] rounded-sm shadow-[2px_3px_5px_rgba(0,0,0,0.4)] text-black animate-pin-drop">
+              <div className="theme-ribbon-tag" aria-hidden="true" />
               
               <p className="text-sm font-medium leading-snug font-serif mt-2">{clue.description}</p>
               <p className="text-[10px] text-gray-500 mt-3 font-typewriter italic uppercase tracking-wider text-right border-t border-black/10 pt-1">

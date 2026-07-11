@@ -1,28 +1,37 @@
 import React from 'react';
+import { useTheme } from './themes/ThemeProvider';
 
 export default function PlayerGrid({ players, typingPlayers, gmSpeaking }) {
+  const theme = useTheme();
+  const PlayerIcon = theme?.icons.player;
+  const GmIcon = theme?.icons.gm;
+
   return (
-    <div className="max-w-6xl mx-auto w-full px-4 py-3 border-b border-[#2a251e] bg-[#0b0a08]">
+    <div className={`theme-player-grid skin-${theme?.playerTileSkin ?? 'default'} max-w-6xl mx-auto w-full px-4 py-3`}>
       <div className="flex flex-wrap gap-4 justify-center md:justify-start">
         {/* Game Master Tile */}
-        <div className={`relative flex items-center p-2 rounded bg-[#161310] border-2 transition-colors ${
-          gmSpeaking ? 'border-mystery-red shadow-[0_0_10px_rgba(179,35,28,0.5)]' : 'border-[#3a332a]'
+        <div className={`theme-place-card theme-gm-card relative flex items-center p-2 transition-colors ${
+          gmSpeaking ? 'is-speaking' : ''
         }`}>
-          <div className="w-8 h-8 flex items-center justify-center rounded-full bg-black/50 border border-[#2a251e] text-mystery-red font-typewriter">GM</div>
-          <span className="ml-3 font-typewriter text-sm tracking-widest uppercase text-mystery-textSecondary">Game Master</span>
+          <div className="theme-place-card-icon">
+            {GmIcon ? <GmIcon aria-hidden="true" /> : 'GM'}
+          </div>
+          <span className="ml-3 font-case text-sm text-mystery-text">
+            {theme?.gmTitle || 'Game Master'}
+          </span>
         </div>
 
         {/* Player Tiles */}
         {players.map(p => {
           const isActive = typingPlayers[p.id] !== undefined;
           return (
-            <div key={p.id} className={`relative flex items-center p-2 rounded bg-[#161310] border-2 transition-colors ${
-              isActive ? 'border-mystery-brass shadow-[0_0_10px_rgba(212,162,76,0.3)]' : 'border-[#3a332a]'
+            <div key={p.id} className={`theme-place-card relative flex items-center p-2 transition-colors ${
+              isActive ? 'is-active' : ''
             }`}>
-              <div className="w-8 h-8 flex items-center justify-center rounded-full bg-black/50 border border-[#2a251e] text-mystery-text font-case">
-                {p.character?.character_name?.charAt(0) || p.name.charAt(0)}
+              <div className="theme-place-card-icon">
+                {PlayerIcon ? <PlayerIcon aria-hidden="true" /> : p.character?.character_name?.charAt(0) || p.name.charAt(0)}
               </div>
-              <span className="ml-3 font-typewriter text-xs tracking-widest uppercase text-mystery-text">
+              <span className="ml-3 font-case text-sm text-mystery-text">
                 {p.character?.character_name || p.name}
               </span>
             </div>

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { MapPin } from 'lucide-react';
+import { useTheme } from './themes/ThemeProvider';
 
 /**
  * Private dossier card — the player's role, background, secret, and motive.
@@ -18,6 +19,7 @@ export default function CharacterCard({
   motive,
   startRevealed = false,
 }) {
+  const theme = useTheme();
   const [isRevealed, setIsRevealed] = useState(startRevealed);
 
   const toggleReveal = () => setIsRevealed((prev) => !prev);
@@ -30,7 +32,7 @@ export default function CharacterCard({
   };
 
   return (
-    <article className="relative w-full font-case">
+    <article className={`theme-character-card skin-${theme?.characterCardSkin ?? 'default'} relative w-full font-case`}>
       {/* Red pin + string motif */}
       <div className="absolute -top-3 -left-1 z-20 pointer-events-none" aria-hidden="true">
         <div className="absolute top-4 left-3 w-px h-16 bg-mystery-red/70 rotate-[24deg] origin-top" />
@@ -40,7 +42,7 @@ export default function CharacterCard({
         />
       </div>
 
-      <div className="bg-mystery-panelLight border border-mystery-hairline rounded-sm shadow-2xl pt-6 pb-6 sm:pb-8 px-5 sm:px-8 lg:px-10 ml-3">
+      <div className="theme-invitation-dossier bg-mystery-panelLight border border-mystery-hairline rounded-sm shadow-2xl pt-6 pb-6 sm:pb-8 px-5 sm:px-8 lg:px-10 ml-3">
         <p className="font-typewriter text-xs uppercase tracking-widest text-mystery-textSecondary mb-2">
           Your Role — Private Dossier
         </p>
